@@ -14,7 +14,10 @@ database from an S3 bucket (such as [Tigris] bucket integrated with your Fly.io 
 ## Usage
 
 You can take [`fly.example.toml`](./fly.example.toml) as a starting point, make a few adjustments to it, and then
-deploy your VPN control plane using the `fly deploy` command.
+deploy your VPN control plane using the `fly deploy` command. Before you perform the deployment, you must generate
+a `NOISE_PRIVATE_KEY` and set it as a secret:
+
+    $ fly secret set NOISE_PRIVATE_KEY="privkey:$(openssl rand -hex 32)"
 
 The default configuration is to use the cheapested VM size available, `shared-cpu-1x` and `256mb` memory, which will
 cost you approx. 1.94 USD/mo (not including miniscule cost for the object storage). This sizing should be sufficient

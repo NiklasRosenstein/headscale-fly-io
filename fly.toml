@@ -1,0 +1,43 @@
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'CHANGE_ME'
+primary_region = 'fra' # Frankfurt region, change this to what's close to your typical location.
+
+[build]
+  image = "ghcr.io/niklasrosenstein/headscale-fly-io:latest"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  # processes = ['app']
+  # [http_service.http_options]
+  #   h2_backend = true
+  # [[http_service.checks]]
+  #   grace_period = "10s"
+  #   interval = "30s"
+  #   method = "GET"
+  #   timeout = "FL5s"
+  #   path = "/"
+
+[[vm]]
+  size = 'shared-cpu-1x'
+  memory = "256mb"
+
+# [[restart]]
+#   policy = "always"
+
+# [[metrics]]
+#   port = 8081
+#   path = "/metrics"
+#   # processes = ["web"]
+
+[[files]]
+  # Generate this secret with
+  # $ fly secret set NOISE_PRIVATE_KEY="privkey:$(openssl rand -hex 32)"
+  secret_name = "NOISE_PRIVATE_KEY"
+  guest_path = "/var/lib/headscale/noise_private.key"
