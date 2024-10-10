@@ -10,7 +10,7 @@ COPY --from=ghcr.io/juanfont/headscale ko-app/headscale /usr/bin/headscale
 COPY --from=litestream /litestream /usr/bin/litestream
 WORKDIR /etc/headscale
 VOLUME /var/lib/headscale
-COPY entrypoint.sh config.template.yaml .
+COPY entrypoint.sh config.template.yaml config-oidc.template.yaml .
 RUN addgroup -S headscale && adduser -S headscale -G headscale
 RUN mkdir -p /etc/headscale /var/lib/headscale /var/run/headscale && \
     touch /etc/litestream.yml && \
