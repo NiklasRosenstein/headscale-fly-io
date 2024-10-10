@@ -19,6 +19,8 @@ a `NOISE_PRIVATE_KEY` and set it as a secret:
 
     $ fly secret set NOISE_PRIVATE_KEY="privkey:$(openssl rand -hex 32)"
 
+TODO: Enable Tigris object storage extension
+
 The default configuration is to use the cheapested VM size available, `shared-cpu-1x` and `256mb` memory, which will
 cost you approx. 1.94 USD/mo (not including miniscule cost for the object storage). This sizing should be sufficient
 to support tens if not up to 100 nodes in your VPN.
