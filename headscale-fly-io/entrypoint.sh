@@ -63,10 +63,30 @@ dbs:
         endpoint: $AWS_ENDPOINT_URL_S3
 EOF
 
+
+# Set default values for configuration variables for use with envsubst.
+export HEADSCALE_SERVER_URL="${HEADSCALE_SERVER_URL:-https://${FLY_APP_NAME}.fly.dev}"
+export HEADSCALE_DNS_BASE_DOMAIN="${HEADSCALE_DNS_BASE_DOMAIN:-tailnet}"
+export HEADSCALE_LOG_LEVEL="${HEADSCALE_LOG_LEVEL:-info}"
+export HEADSCALE_PREFIXES_V4="${HEADSCALE_PREFIXES_V4:-100.64.0.0/10}"
+export HEADSCALE_PREFIXES_V6="${HEADSCALE_PREFIXES_V6:-fd7a:115c:a1e0::/48}"
+export HEADSCALE_PREFIXES_ALLOCATION="${HEADSCALE_PREFIXES_ALLOCATION:-random}"
+
 # Generate the Headscale configuration file by substituting environment variables.
 info "generating $HEADSCALE_CONFIG_PATH"
 # shellcheck disable=SC3060
-cat ${HEADSCALE_CONFIG_PATH/.yaml/.template.yaml} | envsubst > $HEADSCALE_CONFIG_PATH
+envsubst < "${HEADSCALE_CONFIG_PATH/.yaml/.template.yaml}" > $HEADSCALE_CONFIG_PATH
+
+# Append OIDC configuration if enabled.
+if [ -n "${HEADSCALE_OIDC_ISSUER:-}" ]; then
+    export HEADSCALE_OIDC_SCOPES="${HEADSCALE_OIDC_SCOPES:-openid, profile, email}"
+    export HEADSCALE_OIDC_STRIP_EMAIL_DOMAIN="${HEADSCALE_OIDC_STRIP_EMAIL_DOMAIN:-true}"
+    export HEADSCALE_OIDC_EXPIRY="${HEADSCALE_OIDC_EXPIRY:-180d}"
+    export HEADSCALE_OIDC_USE_EXPIRY_FROM_TOKEN="${HEADSCALE_OIDC_USE_EXPIRY_FROM_TOKEN:-true}"
+    export HEADSCALE_OIDC_ONLY_START_IF_OIDC_IS_AVAILABLE="${HEADSCALE_OIDC_ONLY_START_IF_OIDC_IS_AVAILABLE:-true}"
+    # shellcheck disable=SC3060
+    envsubst < "${HEADSCALE_CONFIG_PATH/.yaml/-oidc.template.yaml}" >> $HEADSCALE_CONFIG_PATH
+fi
 
 info_run litestream restore -if-db-not-exists -if-replica-exists -replica s3 "$HEADSCALE_DB_PATH"
 info_run litestream replicate -exec "headscale serve"

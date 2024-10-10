@@ -8,7 +8,7 @@ metrics_listen_addr: 0.0.0.0:8081
 # grpc_allow_insecure: true
 
 log:
-  level: info
+  level: ${HEADSCALE_LOG_LEVEL}
 
 noise:
   private_key_path: /var/lib/headscale/noise_private.key
@@ -20,9 +20,9 @@ database:
     write_ahead_log: true
 
 prefixes:
-  v6: fd7a:115c:a1e0::/48
-  v4: 100.64.0.0/10
-  allocation: random
+  v6: ${HEADSCALE_PREFIXES_V6}
+  v4: ${HEADSCALE_PREFIXES_V4}
+  allocation: ${HEADSCALE_PREFIXES_ALLOCATION}
 
 policy:
   mode: file
@@ -33,19 +33,4 @@ derp:
   - https://controlplane.tailscale.com/derpmap/default
 
 dns:
-  base_domain: tailnet
-
-# TODO: Support configuring OIDC
-# oidc:
-#   only_start_if_oidc_is_available: true
-#   enabled: true
-#   issuer: "${var.oidc.issuer}"
-#   client_id: "${var.oidc.client_id}"
-#   client_secret: "${sensitive(var.oidc.client_secret)}"
-#   use_expiry_from_token: false
-#   scope: ${jsonencode(var.oidc.issuer)}
-#   extra_params: {}
-#   allowed_domains: []
-#   allowed_groups: ${jsonencode(var.oidc.issuer)}
-#   allowed_users: []
-#   strip_email_domain: true
+  base_domain: ${HEADSCALE_DNS_BASE_DOMAIN}

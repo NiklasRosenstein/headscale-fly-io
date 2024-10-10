@@ -1,0 +1,13 @@
+oidc:
+  allowed_domains: [ ${HEADSCALE_OIDC_ALLOWED_DOMAINS} ]
+  allowed_groups: [ ${HEADSCALE_OIDC_ALLOWED_GROUPS} ]
+  allowed_users: [ ${HEADSCALE_OIDC_ALLOWED_USERS} ]
+  client_id: "${HEADSCALE_OIDC_CLIENT_ID}"
+  client_secret: "${HEADSCALE_OIDC_CLIENT_SECRET}"
+  expiry: "${HEADSCALE_OIDC_EXPIRY}"
+  extra_params: {}
+  issuer: "${HEADSCALE_OIDC_ISSUER}"
+  only_start_if_oidc_is_available: ${HEADSCALE_OIDC_ONLY_START_IF_OIDC_IS_AVAILABLE}
+  scope: [ openid, profile, email ]
+  strip_email_domain: ${HEADSCALE_OIDC_STRIP_EMAIL_DOMAIN}
+  use_expiry_from_token: ${HEADSCALE_OIDC_USE_EXPIRY_FROM_TOKEN}
