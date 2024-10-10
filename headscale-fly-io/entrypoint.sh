@@ -37,6 +37,7 @@ NOISE_PRIVATE_KEY_FILE=/var/lib/headscale/noise_private.key
 # This file must be configured through a secret and mounted via the fly.toml configuration.
 # assert_file_exists $NOISE_PRIVATE_KEY_FILE
 assert_is_set NOISE_PRIVATE_KEY
+info "writing $NOISE_PRIVATE_KEY_FILE"
 echo "$NOISE_PRIVATE_KEY" > /$NOISE_PRIVATE_KEY_FILE
 
 # These should be available automatically simply by enabling the Fly.io Tigris object storage extension.
