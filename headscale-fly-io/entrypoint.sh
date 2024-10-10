@@ -94,6 +94,8 @@ envsubst < "${HEADSCALE_CONFIG_PATH/.yaml/.template.yaml}" > $HEADSCALE_CONFIG_P
 
 # Append OIDC configuration if enabled.
 if [ -n "${HEADSCALE_OIDC_ISSUER:-}" ]; then
+    assert_is_set HEADSCALE_OIDC_CLIENT_ID
+    assert_is_set HEADSCALE_OIDC_CLIENT_SECRET
     export HEADSCALE_OIDC_SCOPES="${HEADSCALE_OIDC_SCOPES:-openid, profile, email}"
     export HEADSCALE_OIDC_STRIP_EMAIL_DOMAIN="${HEADSCALE_OIDC_STRIP_EMAIL_DOMAIN:-true}"
     export HEADSCALE_OIDC_EXPIRY="${HEADSCALE_OIDC_EXPIRY:-180d}"
