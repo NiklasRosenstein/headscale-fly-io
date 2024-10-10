@@ -21,6 +21,7 @@ __Contents__
 * [Updates](#updates)
 * [Advanced configuration and usage](#advanced-configuration-and-usage)
   * [Metrics](#metrics)
+  * [Environment variables](#environment-variables)
   * [Configuring OIDC](#configuring-oidc)
   * [Using a custom domain](#using-a-custom-domain)
   * [Highly available Headscale deployment](#highly-available-headscale-deployment)
