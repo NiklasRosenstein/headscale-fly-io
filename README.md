@@ -101,7 +101,10 @@ your `fly.toml` configuration file.
 
 ### Using a custom domain
 
-TODO
+1. Create a CNAME entry for your Fly.io application
+2. Run `fly certs add <custom_domain>`
+
+See also the related documentation on [Fly.io: Custom domains](https://fly.io/docs/networking/custom-domain/).
 
 ### Highly available Headscale deployment
 
