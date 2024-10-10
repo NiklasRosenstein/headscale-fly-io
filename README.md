@@ -20,11 +20,11 @@ __Contents__
 * [Admitting machines to the network](#admitting-machines-to-the-network)
 * [Updates](#updates)
 * [Advanced configuration and usage](#advanced-configuration-and-usage)
-  * [Metrics](#metrics)
-  * [Environment variables](#environment-variables)
   * [Configuring OIDC](#configuring-oidc)
   * [Using a custom domain](#using-a-custom-domain)
   * [Highly available Headscale deployment](#highly-available-headscale-deployment)
+  * [Metrics](#metrics)
+  * [Environment variables](#environment-variables)
 * [Development](#development)
 <!-- end toc -->
 
