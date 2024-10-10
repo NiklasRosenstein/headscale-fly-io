@@ -67,6 +67,8 @@ EOF
 info "generating $HEADSCALE_CONFIG_PATH"
 # shellcheck disable=SC3060
 cat ${HEADSCALE_CONFIG_PATH/.yaml/.template.yaml/} | envsubst > $HEADSCALE_CONFIG_PATH
+info "generated $HEADSCALE_CONFIG_PATH:"
+cat $HEADSCALE_CONFIG_PATH
 
 info_run litestream restore -if-db-not-exists -if-replica-exists -replica s3 "$HEADSCALE_DB_PATH"
 info_run litestream replicate -exec "headscale serve"
