@@ -66,7 +66,7 @@ EOF
 # Generate the Headscale configuration file by substituting environment variables.
 info "generating $HEADSCALE_CONFIG_PATH"
 # shellcheck disable=SC3060
-cat ${HEADSCALE_CONFIG_PATH/.yaml/.template.yaml/} | envsubst > $HEADSCALE_CONFIG_PATH
+cat ${HEADSCALE_CONFIG_PATH/.yaml/.template.yaml} | envsubst > $HEADSCALE_CONFIG_PATH
 info "generated $HEADSCALE_CONFIG_PATH:"
 cat $HEADSCALE_CONFIG_PATH
 
