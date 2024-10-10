@@ -14,10 +14,10 @@ database from an S3 bucket (such as [Tigris] bucket integrated with your Fly.io 
 ## Usage
 
 You can take [`fly.example.toml`](./fly.example.toml) as a starting point, make a few adjustments to it, and then
-deploy your VPN control plane using the `fly deploy` command. Before you perform the deployment, you must generate
+deploy your VPN control plane using the `fly deploy --ha=false` command. Before you perform the deployment, you must generate
 a `NOISE_PRIVATE_KEY` and set it as a secret:
 
-    $ fly secret set NOISE_PRIVATE_KEY="privkey:$(openssl rand -hex 32)"
+    $ fly secrets set NOISE_PRIVATE_KEY=" echo "privkey:$(openssl rand -hex 32)" | base64 -w0"
 
 TODO: Enable Tigris object storage extension
 
