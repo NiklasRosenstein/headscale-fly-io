@@ -62,8 +62,8 @@ export LITESTREAM_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID"
 export LITESTREAM_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY"
 
 if [ "${ENTRYPOINT_DEBUG:-}" = "true" ]; then
-    debug "ENTRYPOINT_DEBUG is set: set +x"
-    set +x
+    debug "ENTRYPOINT_DEBUG is set: set -x"
+    set -x
 fi
 
 info "generating /etc/litestream.yml"
