@@ -61,7 +61,7 @@ assert_is_set BUCKET_NAME
 export LITESTREAM_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID"
 export LITESTREAM_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY"
 
-if [ -n "${ENTRYPOINT_DEBUG:-}" ]; then
+if [ "${ENTRYPOINT_DEBUG:-}" = "true" ]; then
     debug "ENTRYPOINT_DEBUG is set: set +x"
     set +x
 fi
@@ -104,7 +104,7 @@ if [ -n "${HEADSCALE_OIDC_ISSUER:-}" ]; then
     envsubst < "${HEADSCALE_CONFIG_PATH/.yaml/-oidc.template.yaml}" >> $HEADSCALE_CONFIG_PATH
 fi
 
-if [ -n "${ENTRYPOINT_DEBUG:-}" ]; then
+if [ "${ENTRYPOINT_DEBUG:-}" = "true" ]; then
     debug "contents of $HEADSCALE_CONFIG_PATH:"
     cat "$HEADSCALE_CONFIG_PATH"
     debug "end contents of $HEADSCALE_CONFIG_PATH"
