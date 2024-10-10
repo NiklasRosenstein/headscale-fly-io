@@ -111,4 +111,4 @@ if [ "${ENTRYPOINT_DEBUG:-}" = "true" ]; then
 fi
 
 info_run litestream restore -if-db-not-exists -if-replica-exists -replica s3 "$HEADSCALE_DB_PATH"
-exec info_run litestream replicate -exec "headscale serve"
+info_run exec litestream replicate -exec "headscale serve"
