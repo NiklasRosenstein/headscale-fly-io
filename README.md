@@ -15,8 +15,8 @@ __Contents__
 
 <!-- toc -->
 * [Prerequisites](#prerequisites)
-* [Usage](#usage)
 * [Cost](#cost)
+* [Usage](#usage)
 * [Admitting machines to the network](#admitting-machines-to-the-network)
 * [Updates](#updates)
 * [Advanced configuration and usage](#advanced-configuration-and-usage)
@@ -32,6 +32,12 @@ __Contents__
 
 * An account on [Fly.io]
 * The [fly](https://github.com/superfly/flyctl) CLI
+
+## Cost
+
+The default configuration is to use the cheapested VM size available, `shared-cpu-1x`, which will cost you approx.
+1.94 USD/mo (not including miniscule cost for the object storage). This sizing should be sufficient to support tens
+if not up to 100 nodes in your VPN.
 
 ## Usage
 
@@ -56,12 +62,6 @@ is the default.
 __Important__: You should not run your Fly application with more than one machine unless you have followed the
 advanced section on [Configuring OIDC](#configuring-oidc). If you didn't use the `--ha=false` option on initial deploy,
 run `fly scale count 1` to ensure that Headscale is only deployed to one machine.
-
-## Cost
-
-The default configuration is to use the cheapested VM size available, `shared-cpu-1x` and `256mb` memory, which will
-cost you approx. 1.94 USD/mo (not including miniscule cost for the object storage). This sizing should be sufficient
-to support tens if not up to 100 nodes in your VPN.
 
 ## Admitting machines to the network
 
