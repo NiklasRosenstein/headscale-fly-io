@@ -3,11 +3,11 @@
 set -eu
 
 info() {
-    echo "[ entrypoint - INFO ]" "$@"
+    >&2 echo "[ entrypoint - INFO ]" "$@"
 }
 
 error() {
-    echo "[ entrypoint - ERROR ]" "$@"
+    >&2 echo "[ entrypoint - ERROR ]" "$@"
 }
 
 info_run() {
@@ -29,6 +29,13 @@ assert_file_exists() {
         exit 1
     fi
 }
+
+on_error() {
+    [ $? -eq 0 ] && exit
+    error "an unexpected error occurred."
+}
+
+trap 'on_error' EXIT
 
 HEADSCALE_CONFIG_PATH=/etc/headscale/config.yaml
 HEADSCALE_DB_PATH=/var/lib/headscale/db.sqlite
