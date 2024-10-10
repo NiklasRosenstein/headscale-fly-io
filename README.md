@@ -36,3 +36,11 @@ TODO: Metrics
 TODO: OIDC
 
 TODO: Custom domain
+
+## FAQ
+
+### How can I update the image that my application runs with?
+
+Re-running `fly deploy` won't necessarily start the application with the latest version of the image if you
+chose to run it with the `:main` tag, as the previous version under that tag might still be cached. You should
+use an immutable image reference and update the `fly.toml` before running `fly deploy`.
