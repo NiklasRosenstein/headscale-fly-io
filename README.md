@@ -18,12 +18,13 @@ __Contents__
 * [Usage](#usage)
 * [Cost](#cost)
 * [Admitting machines to the network](#admitting-machines-to-the-network)
-* [Advanced configuration](#advanced-configuration)
+* [Updates](#updates)
+* [Advanced configuration and usage](#advanced-configuration-and-usage)
+  * [Metrics](#metrics)
   * [Configuring OIDC](#configuring-oidc)
   * [Using a custom domain](#using-a-custom-domain)
-  * [Metrics](#metrics)
   * [Highly available Headscale deployment](#highly-available-headscale-deployment)
-* [Updates](#updates)
+* [Development](#development)
 <!-- end toc -->
 
 ## Prerequisites
@@ -72,7 +73,20 @@ Shell into your Headscale deployment using
 
 Note that you can set up OIDC to automatically admit new devices to the VPN if a user successfully authenticates.
 
-## Advanced configuration
+## Updates
+
+You should use an immutable tag in your `fly.toml` configuration file's `[build.image]` parameter. Using a mutable tag,
+such as `:main` (pointing to the latest version of the `main` branch of this repository), does not guarantee that your
+deployment comes up with the latest image version as a prior version may be cached.
+
+Simply run `fly deploy` after updating the `[build.image]`. Note that there will be a brief downtime unless you configured a highly available deployment.
+
+## Advanced configuration and usage
+
+### Metrics
+
+Metrics are automatically available through Fly.io's built-in managed Prometheus metrics collection and Grafana
+dashboard. Simply click on "Metrics" in your Fly.io account and explore `headscale_*` metrics.
 
 ### Configuring OIDC
 
@@ -82,18 +96,14 @@ TODO
 
 TODO
 
-### Metrics
-
-TODO
-
 ### Highly available Headscale deployment
 
 TODO (Using LitefS)
 
-## Updates
+## Development
 
-You should use an immutable tag in your `fly.toml` configuration file's `[build.image]` parameter. Using a mutable tag,
-such as `:main` (pointing to the latest version of the `main` branch of this repository), does not guarantee that your
-deployment comes up with the latest image version as a prior version may be cached.
+Simply iterating via `fly deploy` works quite well!
 
-Simply run `fly deploy` after updating the `[build.image]`. Note that there will be a brief downtime unless you configured a highly available deployment.
+To update the ToC in this file, run
+
+    $ uvx mksync -i README.md
