@@ -2,6 +2,10 @@
 
 set -eu
 
+debug() {
+    >&2 echo "[ entrypoint - DEBUG ]" "$@"
+}
+
 info() {
     >&2 echo "[ entrypoint - INFO ]" "$@"
 }
@@ -54,8 +58,13 @@ assert_is_set AWS_REGION
 assert_is_set AWS_ENDPOINT_URL_S3
 assert_is_set BUCKET_NAME
 
-export LITESTREAM_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
-export LITESTREAM_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+export LITESTREAM_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID"
+export LITESTREAM_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY"
+
+if [ -n "${ENTRYPOINT_DEBUG:-}" ]; then
+    debug "ENTRYPOINT_DEBUG is set: set +x"
+    set +x
+fi
 
 info "generating /etc/litestream.yml"
 cat <<EOF >/etc/litestream.yml
@@ -69,7 +78,6 @@ dbs:
         region: $AWS_REGION
         endpoint: $AWS_ENDPOINT_URL_S3
 EOF
-
 
 # Set default values for configuration variables for use with envsubst.
 export HEADSCALE_SERVER_URL="${HEADSCALE_SERVER_URL:-https://${FLY_APP_NAME}.fly.dev}"
@@ -94,6 +102,12 @@ if [ -n "${HEADSCALE_OIDC_ISSUER:-}" ]; then
     info "generating OIDC appendix for $HEADSCALE_CONFIG_PATH"
     # shellcheck disable=SC3060
     envsubst < "${HEADSCALE_CONFIG_PATH/.yaml/-oidc.template.yaml}" >> $HEADSCALE_CONFIG_PATH
+fi
+
+if [ -n "${ENTRYPOINT_DEBUG:-}" ]; then
+    debug "contents of $HEADSCALE_CONFIG_PATH:"
+    cat "$HEADSCALE_CONFIG_PATH"
+    debug "end contents of $HEADSCALE_CONFIG_PATH"
 fi
 
 info_run litestream restore -if-db-not-exists -if-replica-exists -replica s3 "$HEADSCALE_DB_PATH"
