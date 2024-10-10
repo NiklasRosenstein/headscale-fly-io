@@ -1,3 +1,7 @@
+<p align="center">
+  <img src=".github/assets/headscale-on-fly.jpg">
+</p>
+
 # Headscale on Fly.io
 
 This repository builds a Docker image that can be run as an app on [Fly.io] to create an easy, robust and affordable
