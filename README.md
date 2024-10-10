@@ -88,6 +88,25 @@ Simply run `fly deploy` after updating the `[build.image]`. Note that there will
 
 ## Advanced configuration and usage
 
+### Configuring OIDC
+
+To enable OIDC, you must at the minimum provide the following environment variables:
+
+* `HEADSCALE_OIDC_ISSUER`
+* `HEADSCALE_OIDC_CLIENT_ID`
+* `HEADSCALE_OIDC_CLIENT_SECRET`
+
+Please make sure that you pass the client secret using `fly secrets set` instead of via the `[[env]]` section of
+your `fly.toml` configuration file.
+
+### Using a custom domain
+
+TODO
+
+### Highly available Headscale deployment
+
+TODO (Using LitefS)
+
 ### Metrics
 
 Metrics are automatically available through Fly.io's built-in managed Prometheus metrics collection and Grafana
@@ -126,18 +145,6 @@ are expected to be set automatically.
 | `HEADSCALE_OIDC_ONLY_START_IF_OIDC_IS_AVAILABLE` | `true`                            | Fail startup if the OIDC server cannot be reached.                                                                                                                                                                                                                                                 |
 | `NOISE_PRIVATE_KEY`                              | n/a, but required                 | Noise private key for Headscale. Generate with `echo privkey:$(openssl rand -hex 32)`. **Important:** Pass this value securely with `fly secrets set`.                                                                                                                                             |
 | `ENTRYPOINT_DEBUG`                               | n/a                               | If set to `true`, enables logging of executed commands in the container entrypoint and prints out the Headscale configuration before startup. Use with caution, as it might reveal secret values to stdout (and thus into Fly.io's logging infrastructure).                                        |
-
-### Configuring OIDC
-
-TODO
-
-### Using a custom domain
-
-TODO
-
-### Highly available Headscale deployment
-
-TODO (Using LitefS)
 
 ## Development
 
