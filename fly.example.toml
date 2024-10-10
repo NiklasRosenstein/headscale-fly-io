@@ -6,7 +6,7 @@ app = 'CHANGE_ME'
 primary_region = 'fra' # Frankfurt region, change this to what's close to your typical location.
 
 [build]
-  image = "ghcr.io/niklasrosenstein/headscale-fly-io:latest"
+  image = "ghcr.io/niklasrosenstein/headscale-fly-io:main"
 
 [http_service]
   internal_port = 8080
