@@ -11,36 +11,89 @@ database from an S3 bucket (such as [Tigris] bucket integrated with your Fly.io 
   [Tailscale]: https://tailscale.com/
   [Tigris]: https://fly.io/docs/tigris/
 
+__Contents__
+
+<!-- toc -->
+* [Prerequisites](#prerequisites)
+* [Usage](#usage)
+* [Cost](#cost)
+* [Admitting machines to the network](#admitting-machines-to-the-network)
+* [Advanced configuration](#advanced-configuration)
+  * [Configuring OIDC](#configuring-oidc)
+  * [Using a custom domain](#using-a-custom-domain)
+  * [Metrics](#metrics)
+  * [Highly available Headscale deployment](#highly-available-headscale-deployment)
+* [Updates](#updates)
+<!-- end toc -->
+
+## Prerequisites
+
+* An account on [Fly.io]
+* The [fly](https://github.com/superfly/flyctl) CLI
+
 ## Usage
 
-You can take [`fly.example.toml`](./fly.example.toml) as a starting point, make a few adjustments to it, and then
-deploy your VPN control plane using the `fly deploy --ha=false` command. Before you perform the deployment, you must generate
-a `NOISE_PRIVATE_KEY` and set it as a secret:
+1. Take the [`fly.example.toml`](./fly.example.toml) as a starting point and update at least the application name and
+region. The application name must be globally unique and will be used as the domain name of your Headscale control
+plane server (e.g. `https://<app>.fly.dev`). (Read more in the [Advanced configuration](#advanced-configuration) if
+you want to configure a custom domain).
 
-    $ fly secrets set NOISE_PRIVATE_KEY=" echo "privkey:$(openssl rand -hex 32)" | base64 -w0"
+2. Run `fly apps create <app>` (using the same app name you've set in `fly.toml`).
 
-TODO: Enable Tigris object storage extension
+3. Run `fly storage create -a <app> -n <app>` to create an S3 object storage bucket that will contain the replication
+of the Headscale SQlite database.
+
+4. Run `fly secrets set NOISE_PRIVATE_KEY="privkey:$(openssl rand -hex 32)"` to generate the Noise private key
+for your Headscale server (this is a parameter for the secure communication between devices and the control plane).
+Note that if you change this secret, devices need to re-authenticate with the Headscale server.
+
+5. Run `fly deploy --ha=false` to deploy the application. Note that `fly deploy` is sufficient on subsequent runs
+as Fly will not scale up the application using this command except for the initial deployment, where high-availability
+is the default.
+
+## Cost
 
 The default configuration is to use the cheapested VM size available, `shared-cpu-1x` and `256mb` memory, which will
 cost you approx. 1.94 USD/mo (not including miniscule cost for the object storage). This sizing should be sufficient
 to support tens if not up to 100 nodes in your VPN.
 
-To admit new machines into your VPN (after they use `tailscale up --login-server https://<app>.fly.dev`), either
-configure OIDC or connect to your Fly app with `fly ssh console` to run the `headscale user create` and
-`headscale node register` commands.
+## Admitting machines to the network
+
+On a device, run
+
+    $ tailscale up --login-server https://<app>.fly.dev
+
+Following the link that will be displayed in the console will give you the `headscale` command to run to register
+the device. You may need to create a user first with the `headscale user create` command.
+
+Shell into your Headscale deployment using
+
+    $ fly ssh console
+
+Note that you can set up OIDC to automatically admit new devices to the VPN if a user successfully authenticates.
 
 ## Advanced configuration
 
-TODO: Metrics
+### Configuring OIDC
 
-TODO: OIDC
+TODO
 
-TODO: Custom domain
+### Using a custom domain
 
-## FAQ
+TODO
 
-### How can I update the image that my application runs with?
+### Metrics
 
-Re-running `fly deploy` won't necessarily start the application with the latest version of the image if you
-chose to run it with the `:main` tag, as the previous version under that tag might still be cached. You should
-use an immutable image reference and update the `fly.toml` before running `fly deploy`.
+TODO
+
+### Highly available Headscale deployment
+
+TODO (Using LitefS)
+
+## Updates
+
+You should use an immutable tag in your `fly.toml` configuration file's `[build.image]` parameter. Using a mutable tag,
+such as `:main` (pointing to the latest version of the `main` branch of this repository), does not guarantee that your
+deployment comes up with the latest image version as a prior version may be cached.
+
+Simply run `fly deploy` after updating the `[build.image]`. Note that there will be a brief downtime unless you configured a highly available deployment.
