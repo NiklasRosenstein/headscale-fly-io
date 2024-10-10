@@ -52,6 +52,10 @@ Note that if you change this secret, devices need to re-authenticate with the He
 as Fly will not scale up the application using this command except for the initial deployment, where high-availability
 is the default.
 
+__Important__: You should not run your Fly application with more than one machine unless you have followed the
+advanced section on [Configuring OIDC](#configuring-oidc). If you didn't use the `--ha=false` option on initial deploy,
+run `fly scale count 1` to ensure that Headscale is only deployed to one machine.
+
 ## Cost
 
 The default configuration is to use the cheapested VM size available, `shared-cpu-1x` and `256mb` memory, which will
