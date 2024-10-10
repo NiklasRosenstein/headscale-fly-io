@@ -96,4 +96,4 @@ if [ -n "${HEADSCALE_OIDC_ISSUER:-}" ]; then
 fi
 
 info_run litestream restore -if-db-not-exists -if-replica-exists -replica s3 "$HEADSCALE_DB_PATH"
-info_run litestream replicate -exec "headscale serve"
+exec info_run litestream replicate -exec "headscale serve"
