@@ -118,6 +118,15 @@ if [ "${ENTRYPOINT_DEBUG:-}" = "true" ]; then
     debug "end contents of $HEADSCALE_CONFIG_PATH"
 fi
 
+# For migration purposes, if a database file with the -new suffix exists, we use it instead. This allows
+# placing a replacement SQlite database when migrating from another Headscale deployment.
+# shellcheck disable=SC3060
+MIGRATION_SOURCE_DB="${HEADSCALE_DB_PATH/.sqlite/.sqlite-new}"
+if [ -f "${MIGRATION_SOURCE_DB}" ]; then
+    info "detected migration source database \"$MIGRATION_SOURCE_DB\", moving it to \"$HEADSCALE_DB_PATH\""
+    mv -f "$HEADSCALE_DB_PATH" "$MIGRATION_SOURCE_DB"
+fi
+
 if [ "${LITESTREAM_ENABLED:-true}" = "true" ]; then
     info_run litestream restore -if-db-not-exists -if-replica-exists -replica s3 "$HEADSCALE_DB_PATH"
     info_run exec litestream replicate -exec "headscale serve"
