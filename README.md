@@ -66,7 +66,7 @@ Note that if you change this secret, devices need to re-authenticate with the He
 
     ```
     $ age-keygen -o age.privkey 2>&1 | awk '{print $3}' > age.pubkey
-    $ fly secrets set AGE_SECRET_KEY="$(tail -n1 age.privkey)" AGE_PUBLIC_KEY="$(cat age.pubkey)"
+    $ fly secrets set AGE_SECRET_KEY="$(tail -n1 age.privkey)"
     $ rm age.{privkey,pubkey}
     ```
 
