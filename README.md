@@ -9,6 +9,10 @@ deployment of [Headscale] (an open source implementation of the [Tailscale] cont
 self-hosted virtual private network using Tailscale clients). It uses [Litestream] to replicate and restore the SQlite
 database from an S3 bucket (such as [Tigris] bucket integrated with your Fly.io app).
 
+The default configuration is to use the cheapested VM size available, `shared-cpu-1x`. This sizing should be sufficient
+to support tens if not up to 100 nodes in your VPN while costing you approx. 1.94 USD/mo. Tigris object storage has a
+free allowance of 5GB/mo, which you will likely not exceed.
+
   [Fly.io]: https://fly.io
   [Headscale]: https://github.com/juanfont/headscale
   [Litestream]: https://litestream.io/
@@ -19,7 +23,6 @@ __Contents__
 
 <!-- toc -->
 * [Prerequisites](#prerequisites)
-* [Cost](#cost)
 * [Installation](#installation)
 * [Admitting machines to the network](#admitting-machines-to-the-network)
 * [Updates](#updates)
@@ -39,12 +42,6 @@ __Contents__
 * An account on [Fly.io]
 * The [fly](https://github.com/superfly/flyctl) CLI
 * The [age](https://github.com/FiloSottile/age) CLI
-
-## Cost
-
-The default configuration is to use the cheapested VM size available, `shared-cpu-1x`, which will cost you approx.
-1.94 USD/mo (not including miniscule cost for the object storage). This sizing should be sufficient to support tens
-if not up to 100 nodes in your VPN.
 
 ## Installation
 
@@ -256,3 +253,9 @@ Simply iterating via `fly deploy` works quite well!
 To update the ToC in this file, run
 
     $ uvx mksync -i README.md
+
+  [GitHub CLI]: https://cli.github.com/
+
+Releases a tagged in the form of `<version>-headscale-<headscale_version>`. Requires that the [GitHub CLI].
+
+    $ ./scripts/release 0.1.0-headscale-0.23.0
