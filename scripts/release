@@ -1,0 +1,7 @@
+#!/bin/bash
+
+LATEST_TAG="$(git describe --tags --abbrev=0)"
+COMMITS="$(git log "$LATEST_TAG..HEAD" --pretty=format:'- `%h` %s')"
+
+# Create a release on GitHub
+gh release create "$1" --notes "$COMMITS"
