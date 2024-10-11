@@ -115,14 +115,18 @@ if [ "${ENTRYPOINT_DEBUG:-}" = "true" ]; then
     debug "end contents of $HEADSCALE_CONFIG_PATH"
 fi
 
+# Check if there is an existing database to import from S3.
+if mc find "s3/$BUCKET_NAME/import-db.sqlite" 2> /dev/null > /dev/null; then
+    info "found \"import-db.sqlite\" in bucket, importing that database instead of restoring with litestream"
+    mc cp "s3/$BUCKET_NAME/import-db.sqlite" "$HEADSCALE_DB_PATH"
+elif [ "${LITESTREAM_ENABLED:-true}" = "true" ]; then
+    info_run litestream restore -if-db-not-exists -if-replica-exists -replica s3 "$HEADSCALE_DB_PATH"
+else
+    info "no database restored (neither \"import-db.sqlite\" exists in S3 nor litestream is enabled)"
+fi
+
+# Run Headscale.
 if [ "${LITESTREAM_ENABLED:-true}" = "true" ]; then
-    # Check if there is an existing database to import from S3.
-    if mc find "s3/$BUCKET_NAME/import-db.sqlite" 2> /dev/null > /dev/null; then
-        info "found \"import-db.sqlite\" in bucket, importing that database instead of restoring with Litestream"
-        mc cp "s3/$BUCKET_NAME/import-db.sqlite" "$HEADSCALE_DB_PATH"
-    else
-        info_run litestream restore -if-db-not-exists -if-replica-exists -replica s3 "$HEADSCALE_DB_PATH"
-    fi
     info_run exec litestream replicate -exec "headscale serve"
 else
     info_run exec headscale serve
