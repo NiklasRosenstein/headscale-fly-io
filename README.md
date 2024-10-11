@@ -62,9 +62,9 @@ Note that if you change this secret, devices need to re-authenticate with the He
 5. Generate an age keypair for encrypting your Litestream SQlite database replication in S3 by running
 
     ```
-    $ age-keygen -o age.privkey 2>&1 | awk '{print $3}' > age.pubkey
+    $ age-keygen -o age.privkey
     $ fly secrets set AGE_SECRET_KEY="$(tail -n1 age.privkey)"
-    $ rm age.{privkey,pubkey}
+    $ rm age.privkey
     ```
 
 5. Run `fly deploy --ha=false` to deploy the application. Note that `fly deploy` is sufficient on subsequent runs
@@ -116,6 +116,7 @@ your `fly.toml` configuration file.
 
 1. Create a CNAME entry for your Fly.io application
 2. Run `fly certs add <custom_domain>`
+3. Set the `HEADSCALE_SERVER_URL=https://<custom_domain>` in the `fly.toml`'s `[env]` section and re-deploy
 
 See also the related documentation on [Fly.io: Custom domains](https://fly.io/docs/networking/custom-domain/).
 
