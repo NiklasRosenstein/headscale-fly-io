@@ -65,13 +65,13 @@ info "generating /etc/litestream.yml"
 cat <<EOF >/etc/litestream.yml
 dbs:
 - path: /var/lib/headscale/db.sqlite
-    replicas:
-    # See https://litestream.io/reference/config/#s3-replica
-    - type: s3
-        bucket: $BUCKET_NAME
-        path: headscale.db
-        region: $AWS_REGION
-        endpoint: $AWS_ENDPOINT_URL_S3
+  replicas:
+  # See https://litestream.io/reference/config/#s3-replica
+  - type: s3
+    bucket: $BUCKET_NAME
+    path: headscale.db
+    region: $AWS_REGION
+    endpoint: $AWS_ENDPOINT_URL_S3
 EOF
 
 if [ "${ENTRYPOINT_DEBUG:-}" = "true" ]; then
