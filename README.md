@@ -20,7 +20,7 @@ __Contents__
 <!-- toc -->
 * [Prerequisites](#prerequisites)
 * [Cost](#cost)
-* [Usage](#usage)
+* [Installation](#installation)
 * [Admitting machines to the network](#admitting-machines-to-the-network)
 * [Updates](#updates)
 * [Advanced configuration and usage](#advanced-configuration-and-usage)
@@ -46,7 +46,7 @@ The default configuration is to use the cheapested VM size available, `shared-cp
 1.94 USD/mo (not including miniscule cost for the object storage). This sizing should be sufficient to support tens
 if not up to 100 nodes in your VPN.
 
-## Usage
+## Installation
 
 1. Take the [`fly.example.toml`](./fly.example.toml) as a starting point and update at least the application name and
 region. The application name must be globally unique and will be used as the domain name of your Headscale control
@@ -124,7 +124,7 @@ See also the related documentation on [Fly.io: Custom domains](https://fly.io/do
 
 ### Highly available Headscale deployment
 
-TODO (Using LitefS)
+TODO (Using LitefS or rqlite?)
 
 ### Metrics
 
