@@ -29,6 +29,8 @@ __Contents__
   * [Highly available Headscale deployment](#highly-available-headscale-deployment)
   * [Metrics](#metrics)
   * [Environment variables](#environment-variables)
+  * [Migrating to Headscale on Fly.io](#migrating-to-headscale-on-flyio)
+  * [Migrating from Postgres](#migrating-from-postgres)
 * [Development](#development)
 <!-- end toc -->
 
@@ -167,6 +169,84 @@ are expected to be set automatically.
 | `ENTRYPOINT_DEBUG`                               | n/a                               | If set to `true`, enables logging of executed commands in the container entrypoint and prints out the Headscale configuration before startup. Use with caution, as it might reveal secret values to stdout (and thus into Fly.io's logging infrastructure).                                                   |
 | `NOISE_PRIVATE_KEY`                              | n/a, but required                 | Noise private key for Headscale. Generate with `echo privkey:$(openssl rand -hex 32)`. **Important:** Pass this value securely with `fly secrets set`.                                                                                                                                                        |
 | `AGE_SECRET_KEY`                                 | n/a, but required                 | [age] Secret key for encryption your Litestream SQLite replication.                                                                                                                                                                                                                                           |
+
+### Migrating to Headscale on Fly.io
+
+To migrate your existing Headscale instance that uses SQlite to Fly.io, you must upload the database to the S3 bucket
+under a file named `import-db.sqlite` and temporarily set the `IMPORT_DATABASE=true` environment variable. This will
+instruct the application to load this database file instead of attempting a Litestream restore on startup. Once done
+and Litestream has finished replicating this database state to S3, you must remove the `IMPORT_DATABASE` environment
+variable and re-deploy your application, and you should also consider removing the `import-db.sqlite` file from the
+S3 bucket again.
+
+You should also make sure that you set the `NOISE_PRIVATE_KEY` secret variable to the contents of your original
+Headscale instance's noise private key.
+
+### Migrating from Postgres
+
+> __Warning__: These steps have been tested on Headscale 0.23.0 only.
+
+  [bigbozza/headscalebacktosqlite]: https://github.com/bigbozza/headscalebacktosqlite/tree/main
+
+If your current Headscale deployment is using a Postgres database, you must convert it to an SQlite database before
+you can migrate your instance to Headscale on Fly.io. You can leverage script provided by
+[bigbozza/headscalebacktosqlite] for this, and it is more conveniently made available in this repository in
+[./headscale-back-to-sqlite](./headscale-back-to-sqlite/).
+
+First, you need to grab an empty SQlite database that was initialized by Headscale (so all the tables exist with the
+right schemas). You can do this by grabbing it from an initial Fly.io deployment. If your deployment already has some
+data in it because you did some prior testing, you can set the `LITESTREAM_ENABLED=false` environment variable to not
+use Litestream and have Headscale start from an empty database (remember to unset this variable again once you have
+retrieved the empty SQlite database).
+
+Because Headscale is configured to use SQlite in WAL mode, we must first create a WAL checkpoint to ensure that the
+database initialization is committed to the database file.
+
+    $ fly deploy
+    $ fly console ssh
+    app> $ apk add sqlite
+    app> $ sqlite3 /var/lib/headscale/db.sqlite
+    app> sqlite3> PRAGMA wal_checkpoint(TRUNCATE);
+    app> sqlite3> [Ctrl+D]
+    app> $ exit
+    $ fly ssh sftp get /var/lib/headscale/db.sqlite
+
+  [UV]: https://github.com/astral-sh/uv
+
+Change into the [./headscale-back-to-sqlite](./headscale-back-to-sqlite/) directory and use [UV] to run the script.
+
+    $ uv run main.py \
+        --pg-host db-host.example \
+        --pg-port 5432 \
+        --pg-db headscale \
+        --pg-user headscale \
+        --pg-password DBPASSWORD \
+        --sqlite-out path/to/db.sqlite
+
+> This will perform read-only operations on the Postgres database so you do not need to worry about creating a separate
+> backup of your Postgres database.
+
+  [mc]: https://min.io/docs/minio/linux/reference/minio-mc.html
+
+If all succeeded, upload the database to the S3 bucket that Headscale on Fly.io also uses to replicate the database
+to with Litestream. If you're using the Tigris object storage extension in Fly.io, you will likely need to log into
+the Tigris console via the Fly.io dashboard and generate some temporary access credentials. The following example uses
+the [mc] CLI to upload the file.
+
+    $ mc alias set tigris https://fly.storage.tigris.dev <ACCESS_KEY_ID> <SECRET_ACCESS_KEY>
+    $ mc cp path/to/db.sqlite tigris/<YOUR_BUCKET_NAME>/import-db.sqlite
+
+Set the `IMPORT_DATABASE=true` environment variable and re-deploy your application.
+
+    $ fly deploy --env IMPORT_DATABASE=true
+    $ fly logs
+
+Wait for the application to start, the database to be imported from S3 and Litestream to have replicated it to the
+S3 bucket. Then re-deploy to remove the `IMPORT_DATABASE` variable.
+
+    $ fly deploy
+
+You should be good to go!
 
 ## Development
 

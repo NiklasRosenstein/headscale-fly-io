@@ -1,0 +1,21 @@
+[project]
+name = "headscale-back-to-sqlite"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pandas>=2.2.3",
+    "psycopg2-binary>=2.9.9",
+    "sqlalchemy>=2.0.35",
+    "typer>=0.12.5",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "ruff>=0.6.9",
+]
+
+[tool.ruff]
+line-length = 120
+exclude = ["vendor/*"]

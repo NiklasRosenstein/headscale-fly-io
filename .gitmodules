@@ -1,0 +1,3 @@
+[submodule "headscale-back-to-sqlite/vendor/headscalebacktosqlite"]
+	path = headscale-back-to-sqlite/vendor/headscalebacktosqlite
+	url = https://github.com/bigbozza/headscalebacktosqlite.git
