@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if [ -n "$(git log "origin/$(git rev-parse --abbrev-ref HEAD)"..HEAD)" ]; then
+  echo "Error: There are unpushed commits on the current branch. Please push all changes before creating a release."
+  exit 1
+fi
+
 LATEST_TAG="$(git describe --tags --abbrev=0)"
 COMMITS="$(git log "$LATEST_TAG..HEAD" --pretty=format:'- `%h` %s')"
 
