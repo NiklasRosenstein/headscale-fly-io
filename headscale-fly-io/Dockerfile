@@ -1,6 +1,6 @@
 FROM alpine AS fetcher
 RUN apk add wget tar
-RUN $(arch | sed s/aarch64/arm64/ | sed s/x86_64/amd64/) > /tmp/arch
+RUN arch | sed s/aarch64/arm64/ | sed s/x86_64/amd64/ > /tmp/arch
 
 FROM fetcher AS litestream
 RUN arch=$(cat /tmp/arch) &&\
