@@ -118,7 +118,7 @@ fi
 if [ "${LITESTREAM_ENABLED:-true}" = "true" ]; then
     # Check if there is an existing database to import from S3.
     if mc find "s3/$BUCKET_NAME/import-db.sqlite" 2> /dev/null > /dev/null; then
-        info_run "found \"import-db.sqlite\" in bucket, importing that database instead of restoring with Litestream"
+        info "found \"import-db.sqlite\" in bucket, importing that database instead of restoring with Litestream"
         mc cp "s3/$BUCKET_NAME/import-db.sqlite" "$HEADSCALE_DB_PATH"
     else
         info_run litestream restore -if-db-not-exists -if-replica-exists -replica s3 "$HEADSCALE_DB_PATH"
