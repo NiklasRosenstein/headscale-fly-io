@@ -7,7 +7,7 @@ primary_region = "fra"
 swap_size_mb = 128
 
 [build]
-  image = "ghcr.io/niklasrosenstein/headscale-fly-io:0.1.0-headscale-0.23.0"
+  image = "ghcr.io/niklasrosenstein/headscale-fly-io:0.2.3-headscale-0.23.0"
 
 [deploy]
   strategy = "immediate"
