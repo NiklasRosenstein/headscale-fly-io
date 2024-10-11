@@ -116,7 +116,7 @@ if [ "${ENTRYPOINT_DEBUG:-}" = "true" ]; then
 fi
 
 # Check if there is an existing database to import from S3.
-if mc find "s3/$BUCKET_NAME/import-db.sqlite" 2> /dev/null > /dev/null; then
+if [ "${IMPORT_DATABASE:-}" = "true" ] && mc find "s3/$BUCKET_NAME/import-db.sqlite" 2> /dev/null > /dev/null; then
     info "found \"import-db.sqlite\" in bucket, importing that database instead of restoring with litestream"
     mc cp "s3/$BUCKET_NAME/import-db.sqlite" "$HEADSCALE_DB_PATH"
 elif [ "${LITESTREAM_ENABLED:-true}" = "true" ]; then
