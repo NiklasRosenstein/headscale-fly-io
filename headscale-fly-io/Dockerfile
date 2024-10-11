@@ -14,10 +14,10 @@ RUN arch=$(cat /tmp/arch) &&\
 
 FROM alpine
 RUN apk add envsubst
-COPY --from=ghcr.io/juanfont/headscale ko-app/headscale /usr/bin/headscale
+COPY --from=ghcr.io/juanfont/headscale:v0.23.0 ko-app/headscale /usr/bin/headscale
 COPY --from=litestream /litestream /usr/bin/litestream
 COPY --from=age /age /age-keygen /usr/bin/
-COPY --from=minio/mc /usr/bin/mc /usr/bin/mc
+COPY --from=minio/mc:RELEASE.2024-10-02T08-27-28Z /usr/bin/mc /usr/bin/mc
 WORKDIR /etc/headscale
 VOLUME /var/lib/headscale
 COPY entrypoint.sh config.template.yaml config-oidc.template.yaml .
