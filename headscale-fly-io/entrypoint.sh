@@ -51,21 +51,18 @@ assert_is_set NOISE_PRIVATE_KEY
 info "writing $NOISE_PRIVATE_KEY_FILE"
 echo "$NOISE_PRIVATE_KEY" > /$NOISE_PRIVATE_KEY_FILE
 
-if [ "${LITESTREAM_ENABLED:-true}" = "true" ]; then
-    info "litestream is enabled"
+# These should be available automatically simply by enabling the Fly.io Tigris object storage extension.
+assert_is_set AWS_ACCESS_KEY_ID
+assert_is_set AWS_SECRET_ACCESS_KEY
+assert_is_set AWS_REGION
+assert_is_set AWS_ENDPOINT_URL_S3
+assert_is_set BUCKET_NAME
 
-    # These should be available automatically simply by enabling the Fly.io Tigris object storage extension.
-    assert_is_set AWS_ACCESS_KEY_ID
-    assert_is_set AWS_SECRET_ACCESS_KEY
-    assert_is_set AWS_REGION
-    assert_is_set AWS_ENDPOINT_URL_S3
-    assert_is_set BUCKET_NAME
+export LITESTREAM_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID"
+export LITESTREAM_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY"
 
-    export LITESTREAM_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID"
-    export LITESTREAM_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY"
-
-    info "generating /etc/litestream.yml"
-    cat <<EOF >/etc/litestream.yml
+info "generating /etc/litestream.yml"
+cat <<EOF >/etc/litestream.yml
 dbs:
 - path: /var/lib/headscale/db.sqlite
     replicas:
@@ -76,9 +73,6 @@ dbs:
         region: $AWS_REGION
         endpoint: $AWS_ENDPOINT_URL_S3
 EOF
-else
-    info "litestream is disabled"
-fi
 
 if [ "${ENTRYPOINT_DEBUG:-}" = "true" ]; then
     debug "ENTRYPOINT_DEBUG is set: set -x"
@@ -116,15 +110,6 @@ if [ "${ENTRYPOINT_DEBUG:-}" = "true" ]; then
     debug "contents of $HEADSCALE_CONFIG_PATH:"
     cat "$HEADSCALE_CONFIG_PATH"
     debug "end contents of $HEADSCALE_CONFIG_PATH"
-fi
-
-# For migration purposes, if a database file with the -new suffix exists, we use it instead. This allows
-# placing a replacement SQlite database when migrating from another Headscale deployment.
-# shellcheck disable=SC3060
-MIGRATION_SOURCE_DB="${HEADSCALE_DB_PATH/.sqlite/.sqlite-new}"
-if [ -f "${MIGRATION_SOURCE_DB}" ]; then
-    info "detected migration source database \"$MIGRATION_SOURCE_DB\", moving it to \"$HEADSCALE_DB_PATH\""
-    mv -f "$HEADSCALE_DB_PATH" "$MIGRATION_SOURCE_DB"
 fi
 
 if [ "${LITESTREAM_ENABLED:-true}" = "true" ]; then
