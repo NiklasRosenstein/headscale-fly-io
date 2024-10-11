@@ -7,16 +7,10 @@ RUN arch=$(cat /tmp/arch) &&\
     wget https://github.com/benbjohnson/litestream/releases/download/v0.3.13/litestream-v0.3.13-linux-${arch}.tar.gz && \
     tar -xf litestream-v0.3.13-linux-${arch}.tar.gz
 
-FROM fetcher AS age
-RUN arch=$(cat /tmp/arch) &&\
-    wget https://github.com/FiloSottile/age/releases/download/v1.2.0/age-v1.2.0-linux-${arch}.tar.gz && \
-    tar -xf age-v1.2.0-linux-${arch}.tar.gz age/age age/age-keygen --strip-components=1
-
 FROM alpine
-RUN apk add envsubst
+RUN apk add age envsubst
 COPY --from=ghcr.io/juanfont/headscale:v0.23.0 ko-app/headscale /usr/bin/headscale
 COPY --from=litestream /litestream /usr/bin/litestream
-COPY --from=age /age /age-keygen /usr/bin/
 COPY --from=minio/mc:RELEASE.2024-10-02T08-27-28Z /usr/bin/mc /usr/bin/mc
 WORKDIR /etc/headscale
 VOLUME /var/lib/headscale
