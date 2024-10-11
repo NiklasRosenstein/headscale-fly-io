@@ -57,9 +57,11 @@ assert_is_set AWS_SECRET_ACCESS_KEY
 assert_is_set AWS_REGION
 assert_is_set AWS_ENDPOINT_URL_S3
 assert_is_set BUCKET_NAME
+assert_is_set AGE_PRIVATE_KEY
 
 export LITESTREAM_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID"
 export LITESTREAM_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY"
+AGE_PUBLIC_KEY="$(echo "$AGE_PRIVATE_KEY" | age-keygen -y)"
 
 info "generating /etc/litestream.yml"
 cat <<EOF >/etc/litestream.yml
@@ -72,6 +74,12 @@ dbs:
     path: headscale.db
     region: $AWS_REGION
     endpoint: $AWS_ENDPOINT_URL_S3
+    # See https://litestream.io/reference/config/#encryption
+    age:
+      identities:
+      - "$AGE_PRIVATE_KEY"
+      recipients:
+      - "$AGE_PUBLIC_KEY"
 EOF
 
 info "configuring mc"

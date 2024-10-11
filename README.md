@@ -36,6 +36,7 @@ __Contents__
 
 * An account on [Fly.io]
 * The [fly](https://github.com/superfly/flyctl) CLI
+* The [age](https://github.com/FiloSottile/age) CLI
 
 ## Cost
 
@@ -58,6 +59,14 @@ of the Headscale SQlite database.
 4. Run `fly secrets set NOISE_PRIVATE_KEY="privkey:$(openssl rand -hex 32)"` to generate the Noise private key
 for your Headscale server (this is a parameter for the secure communication between devices and the control plane).
 Note that if you change this secret, devices need to re-authenticate with the Headscale server.
+
+5. Generate an age keypair for encrypting your Litestream SQlite database replication in S3 by running
+
+    ```
+    $ age-keygen -o age.privkey 2>&1 | awk '{print $3}' > age.pubkey
+    $ fly secrets set AGE_PRIVATE_KEY="$(tail -n1 age.privkey)" AGE_PUBLIC_KEY="$(cat age.pubkey)"
+    $ rm age.{privkey,pubkey}
+    ```
 
 5. Run `fly deploy --ha=false` to deploy the application. Note that `fly deploy` is sufficient on subsequent runs
 as Fly will not scale up the application using this command except for the initial deployment, where high-availability
@@ -150,10 +159,11 @@ are expected to be set automatically.
 | `HEADSCALE_OIDC_EXPIRY`                          | `180d`                            | The amount of time from a node is authenticated with OpenID until it expires and needs to reauthenticate. Setting the value to "0" will mean no expiry.                                                                                                                                                       |
 | `HEADSCALE_OIDC_USE_EXPIRY_FROM_TOKEN`           | `true`                            | Use the expiry from the token received from OpenID when the user logged in, this will typically lead to frequent need to reauthenticate and should only been enabled if you know what you are doing. If enabled, `HEADSCALE_OIDC_EXPIRY` is ignored.                                                          |
 | `HEADSCALE_OIDC_ONLY_START_IF_OIDC_IS_AVAILABLE` | `true`                            | Fail startup if the OIDC server cannot be reached.                                                                                                                                                                                                                                                            |
-| `NOISE_PRIVATE_KEY`                              | n/a, but required                 | Noise private key for Headscale. Generate with `echo privkey:$(openssl rand -hex 32)`. **Important:** Pass this value securely with `fly secrets set`.                                                                                                                                                        |
 | `LITESTREAM_ENABLED`                             | `true`                            | Whether to restore and replicate the SQlite database with Litestream. You likely never want to turn this option off, as you will loose your SQlite database on restarts.                                                                                                                                      |
 | `IMPORT_DATABASE`                                | `false`                           | If set to `true`, the entrypoint will check for an `import-db.sqlite` file in the S3 bucket to restore, and use that instead of `litestream restore` if it exists. Note that the file will not be removed, so you should disable this option and remove the file from the bucket once the import is complete. |
 | `ENTRYPOINT_DEBUG`                               | n/a                               | If set to `true`, enables logging of executed commands in the container entrypoint and prints out the Headscale configuration before startup. Use with caution, as it might reveal secret values to stdout (and thus into Fly.io's logging infrastructure).                                                   |
+| `NOISE_PRIVATE_KEY`                              | n/a, but required                 | Noise private key for Headscale. Generate with `echo privkey:$(openssl rand -hex 32)`. **Important:** Pass this value securely with `fly secrets set`.                                                                                                                                                        |
+| `AGE_PRIVATE_KEY`                                | n/a, but required                 | [age] Private key for encryption your Litestream SQLite replication.                                                                                                                                                                                                                                          |
 
 ## Development
 
