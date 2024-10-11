@@ -1,4 +1,4 @@
-server_url: https://${FLY_APP_NAME}.fly.dev
+server_url: https://${HEADSCALE_SERVER_URL}
 listen_addr: 0.0.0.0:8080
 metrics_listen_addr: 0.0.0.0:8081
 
