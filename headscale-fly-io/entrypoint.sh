@@ -74,6 +74,9 @@ dbs:
     endpoint: $AWS_ENDPOINT_URL_S3
 EOF
 
+info "configuring mc"
+mc alias set s3 "$AWS_ENDPOINT_URL_S3" "$AWS_ACCESS_KEY_ID" "$AWS_SECRET_ACCESS_KEY"
+
 if [ "${ENTRYPOINT_DEBUG:-}" = "true" ]; then
     debug "ENTRYPOINT_DEBUG is set: set -x"
     set -x
@@ -113,7 +116,13 @@ if [ "${ENTRYPOINT_DEBUG:-}" = "true" ]; then
 fi
 
 if [ "${LITESTREAM_ENABLED:-true}" = "true" ]; then
-    info_run litestream restore -if-db-not-exists -if-replica-exists -replica s3 "$HEADSCALE_DB_PATH"
+    # Check if there is an existing database to import from S3.
+    if mc find "s3/$BUCKET_NAME/import-db.sqlite" 2> /dev/null > /dev/null; then
+        info_run "found \"import-db.sqlite\" in bucket, importing that database instead of restoring with Litestream"
+        mc cp "s3/$BUCKET_NAME/import-db.sqlite" "$HEADSCALE_DB_PATH"
+    else
+        info_run litestream restore -if-db-not-exists -if-replica-exists -replica s3 "$HEADSCALE_DB_PATH"
+    fi
     info_run exec litestream replicate -exec "headscale serve"
 else
     info_run exec headscale serve

@@ -8,6 +8,7 @@ FROM alpine
 RUN apk add envsubst
 COPY --from=ghcr.io/juanfont/headscale ko-app/headscale /usr/bin/headscale
 COPY --from=litestream /litestream /usr/bin/litestream
+COPY --from=minio/mc /usr/bin/mc /usr/bin/mc
 WORKDIR /etc/headscale
 VOLUME /var/lib/headscale
 COPY entrypoint.sh config.template.yaml config-oidc.template.yaml .
