@@ -121,8 +121,6 @@ if [ "${IMPORT_DATABASE:-}" = "true" ] && mc find "s3/$BUCKET_NAME/import-db.sql
     mc cp "s3/$BUCKET_NAME/import-db.sqlite" "$HEADSCALE_DB_PATH"
 elif [ "${LITESTREAM_ENABLED:-true}" = "true" ]; then
     info_run litestream restore -if-db-not-exists -if-replica-exists -replica s3 "$HEADSCALE_DB_PATH"
-else
-    info "no database restored (neither \"import-db.sqlite\" exists in S3 nor litestream is enabled)"
 fi
 
 # Run Headscale.
