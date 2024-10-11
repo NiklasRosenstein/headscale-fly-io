@@ -51,33 +51,39 @@ assert_is_set NOISE_PRIVATE_KEY
 info "writing $NOISE_PRIVATE_KEY_FILE"
 echo "$NOISE_PRIVATE_KEY" > /$NOISE_PRIVATE_KEY_FILE
 
-# These should be available automatically simply by enabling the Fly.io Tigris object storage extension.
-assert_is_set AWS_ACCESS_KEY_ID
-assert_is_set AWS_SECRET_ACCESS_KEY
-assert_is_set AWS_REGION
-assert_is_set AWS_ENDPOINT_URL_S3
-assert_is_set BUCKET_NAME
+if [ "${LITESTREAM_ENABLED:-true}" = "true" ]; then
+    info "litestream is enabled"
 
-export LITESTREAM_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID"
-export LITESTREAM_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY"
+    # These should be available automatically simply by enabling the Fly.io Tigris object storage extension.
+    assert_is_set AWS_ACCESS_KEY_ID
+    assert_is_set AWS_SECRET_ACCESS_KEY
+    assert_is_set AWS_REGION
+    assert_is_set AWS_ENDPOINT_URL_S3
+    assert_is_set BUCKET_NAME
 
-if [ "${ENTRYPOINT_DEBUG:-}" = "true" ]; then
-    debug "ENTRYPOINT_DEBUG is set: set -x"
-    set -x
-fi
+    export LITESTREAM_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID"
+    export LITESTREAM_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY"
 
-info "generating /etc/litestream.yml"
-cat <<EOF >/etc/litestream.yml
+    info "generating /etc/litestream.yml"
+    cat <<EOF >/etc/litestream.yml
 dbs:
-  - path: /var/lib/headscale/db.sqlite
+- path: /var/lib/headscale/db.sqlite
     replicas:
-      # See https://litestream.io/reference/config/#s3-replica
-      - type: s3
+    # See https://litestream.io/reference/config/#s3-replica
+    - type: s3
         bucket: $BUCKET_NAME
         path: headscale.db
         region: $AWS_REGION
         endpoint: $AWS_ENDPOINT_URL_S3
 EOF
+else
+    info "litestream is disabled"
+fi
+
+if [ "${ENTRYPOINT_DEBUG:-}" = "true" ]; then
+    debug "ENTRYPOINT_DEBUG is set: set -x"
+    set -x
+fi
 
 # Set default values for configuration variables for use with envsubst.
 export HEADSCALE_SERVER_URL="${HEADSCALE_SERVER_URL:-https://${FLY_APP_NAME}.fly.dev}"
@@ -112,5 +118,9 @@ if [ "${ENTRYPOINT_DEBUG:-}" = "true" ]; then
     debug "end contents of $HEADSCALE_CONFIG_PATH"
 fi
 
-info_run litestream restore -if-db-not-exists -if-replica-exists -replica s3 "$HEADSCALE_DB_PATH"
-info_run exec litestream replicate -exec "headscale serve"
+if [ "${LITESTREAM_ENABLED:-true}" = "true" ]; then
+    info_run litestream restore -if-db-not-exists -if-replica-exists -replica s3 "$HEADSCALE_DB_PATH"
+    info_run exec litestream replicate -exec "headscale serve"
+else
+    info_run exec headscale serve
+fi
