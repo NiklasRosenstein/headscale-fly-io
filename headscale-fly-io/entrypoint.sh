@@ -80,6 +80,11 @@ dbs:
       - "$AGE_PRIVATE_KEY"
       recipients:
       - "$AGE_PUBLIC_KEY"
+    # See https://litestream.io/reference/config/#retention-period
+    retention: "${LITESTREAM_RETENTION:-24h}"
+    retention-check-interval: ${LITESTREAM_RETENTION_CHECK_INTERVAL:-1h}"
+    # https://litestream.io/reference/config/#validation-interval
+    validation-interval: "${LITESTREAM_VALIDATION_INTERVAL:-12h}"
 EOF
 
 info "configuring mc"
