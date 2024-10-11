@@ -34,9 +34,17 @@ assert_file_exists() {
     fi
 }
 
+maybe_idle() {
+    if [ "${ENTRYPOINT_IDLE:-false}" = "true" ]; then
+        info "ENTRYPOINT_IDLE=true, entering idle state"
+        sleep infinity
+    fi
+}
+
 on_error() {
     [ $? -eq 0 ] && exit
     error "an unexpected error occurred."
+    maybe_idle
 }
 
 trap 'on_error' EXIT
@@ -135,6 +143,8 @@ if [ "${IMPORT_DATABASE:-}" = "true" ] && mc find "s3/$BUCKET_NAME/import-db.sql
 elif [ "${LITESTREAM_ENABLED:-true}" = "true" ]; then
     info_run litestream restore -if-db-not-exists -if-replica-exists -replica s3 "$HEADSCALE_DB_PATH"
 fi
+
+maybe_idle
 
 # Run Headscale.
 if [ "${LITESTREAM_ENABLED:-true}" = "true" ]; then
