@@ -9,6 +9,9 @@ swap_size_mb = 128
 [build]
   image = "ghcr.io/niklasrosenstein/headscale-fly-io:0.1.0-headscale-0.23.0"
 
+[deploy]
+  strategy = "immediate"
+
 [http_service]
   internal_port = 8080
   force_https = true
