@@ -64,7 +64,7 @@ Note that if you change this secret, devices need to re-authenticate with the He
 
     ```
     $ age-keygen -o age.privkey 2>&1 | awk '{print $3}' > age.pubkey
-    $ fly secrets set AGE_PRIVATE_KEY="$(tail -n1 age.privkey)" AGE_PUBLIC_KEY="$(cat age.pubkey)"
+    $ fly secrets set AGE_SECRET_KEY="$(tail -n1 age.privkey)" AGE_PUBLIC_KEY="$(cat age.pubkey)"
     $ rm age.{privkey,pubkey}
     ```
 
@@ -166,7 +166,7 @@ are expected to be set automatically.
 | `IMPORT_DATABASE`                                | `false`                           | If set to `true`, the entrypoint will check for an `import-db.sqlite` file in the S3 bucket to restore, and use that instead of `litestream restore` if it exists. Note that the file will not be removed, so you should disable this option and remove the file from the bucket once the import is complete. |
 | `ENTRYPOINT_DEBUG`                               | n/a                               | If set to `true`, enables logging of executed commands in the container entrypoint and prints out the Headscale configuration before startup. Use with caution, as it might reveal secret values to stdout (and thus into Fly.io's logging infrastructure).                                                   |
 | `NOISE_PRIVATE_KEY`                              | n/a, but required                 | Noise private key for Headscale. Generate with `echo privkey:$(openssl rand -hex 32)`. **Important:** Pass this value securely with `fly secrets set`.                                                                                                                                                        |
-| `AGE_PRIVATE_KEY`                                | n/a, but required                 | [age] Private key for encryption your Litestream SQLite replication.                                                                                                                                                                                                                                          |
+| `AGE_SECRET_KEY`                                 | n/a, but required                 | [age] Secret key for encryption your Litestream SQLite replication.                                                                                                                                                                                                                                           |
 
 ## Development
 
