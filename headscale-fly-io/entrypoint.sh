@@ -99,7 +99,7 @@ info "configuring mc"
 mc alias set s3 "$AWS_ENDPOINT_URL_S3" "$AWS_ACCESS_KEY_ID" "$AWS_SECRET_ACCESS_KEY"
 
 # Set default values for configuration variables for use with envsubst.
-export HEADSCALE_SERVER_URL="${HEADSCALE_SERVER_URL:-https://${FLY_APP_NAME}.fly.dev}"
+export HEADSCALE_SERVER_DOMAIN="${HEADSCALE_SERVER_DOMAIN:-${FLY_APP_NAME}.fly.dev}"
 export HEADSCALE_DNS_BASE_DOMAIN="${HEADSCALE_DNS_BASE_DOMAIN:-tailnet}"
 export HEADSCALE_LOG_LEVEL="${HEADSCALE_LOG_LEVEL:-info}"
 export HEADSCALE_PREFIXES_V4="${HEADSCALE_PREFIXES_V4:-100.64.0.0/10}"

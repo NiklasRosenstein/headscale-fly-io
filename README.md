@@ -116,7 +116,7 @@ your `fly.toml` configuration file.
 
 1. Create a CNAME entry for your Fly.io application
 2. Run `fly certs add <custom_domain>`
-3. Set the `HEADSCALE_SERVER_URL=https://<custom_domain>` in the `fly.toml`'s `[env]` section and re-deploy
+3. Set the `HEADSCALE_SERVER_DOMAIN=<custom_domain>` in the `fly.toml`'s `[env]` section and re-deploy
 
 See also the related documentation on [Fly.io: Custom domains](https://fly.io/docs/networking/custom-domain/).
 
@@ -144,7 +144,7 @@ __System variables__
 | `AWS_REGION`            | (automatic) |                                                                                                                                                |
 | `AWS_ENDPOINT_URL_S3`   | (automatic) |                                                                                                                                                |
 | `BUCKET_NAME`           | (automatic) |                                                                                                                                                |
-| `FLY_APP_NAME`          | (automatic) | Used to determine the Headscale server URL, if `HEADSCALE_SERVER_URL` is not set.                                                              |
+| `FLY_APP_NAME`          | (automatic) | Used to determine the Headscale server URL, if `HEADSCALE_SERVER_DOMAIN` is not set.                                                           |
 
 __Security variables__
 
@@ -157,8 +157,8 @@ __Headscale configuration variables__
 
 | Variable                                         | Default                                              | Description                                                                                                                                                                                                                                                                                        |
 |--------------------------------------------------|------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `HEADSCALE_SERVER_URL`                           | `https://${FLY_APP_NAME}.fly.dev`                    | URL of the Headscale server.                                                                                                                                                                                                                                                                       |
-| `HEADSCALE_DNS_BASE_DOMAIN`                      | `tailnet`                                            | Base domain for members in the Tailnet. This **must not** be a part of the `HEADSCALE_SERVER_URL`.                                                                                                                                                                                                 |
+| `HEADSCALE_SERVER_DOMAIN`                        | `${FLY_APP_NAME}.fly.dev`                            | URL of the Headscale server.                                                                                                                                                                                                                                                                       |
+| `HEADSCALE_DNS_BASE_DOMAIN`                      | `tailnet`                                            | Base domain for members in the Tailnet. This **must not** be a part of the `HEADSCALE_SERVER_DOMAIN`.                                                                                                                                                                                                 |
 | `HEADSCALE_LOG_LEVEL`                            | `info`                                               | Log level for the Headscale server.                                                                                                                                                                                                                                                                |
 | `HEADSCALE_PREFIXES_V4`                          | `100.64.0.0/10`                                      | Prefix for IP-v4 addresses of nodes in the Tailnet.                                                                                                                                                                                                                                                |
 | `HEADSCALE_PREFIXES_V6`                          | `fd7a:115c:a1e0::/48`                                | Prefix for IP-v6 addresses of nodes in the Tailnet.                                                                                                                                                                                                                                                |
