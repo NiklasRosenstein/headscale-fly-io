@@ -1,4 +1,4 @@
-server_url: https://${HEADSCALE_SERVER_URL}
+server_url: https://${HEADSCALE_SERVER_DOMAIN}
 listen_addr: 0.0.0.0:8080
 metrics_listen_addr: 0.0.0.0:8081
 
@@ -27,6 +27,12 @@ prefixes:
 policy:
   mode: file
   path: ""  # TODO: Support ACL policy files?
+
+acme_url: ${HEADSCALE_ACME_URL}
+acme_email: ${HEADSCALE_ACME_EMAIL}
+tls_letsencrypt_hostname: ${HEADSCALE_SERVER_DOMAIN}
+tls_letsencrypt_cache_dir: /mnt/s3/letsencrypt
+tls_letsencrypt_listen: ":http"
 
 derp:
   server:

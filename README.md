@@ -115,10 +115,10 @@ your `fly.toml` configuration file.
 ### Using a custom domain
 
 1. Create a CNAME entry for your Fly.io application
-2. Run `fly certs add <custom_domain>`
-3. Set the `HEADSCALE_SERVER_URL=https://<custom_domain>` in the `fly.toml`'s `[env]` section and re-deploy
+2. Set the `HEADSCALE_SERVER_DOMAIN=<custom_domain>` in the `fly.toml`'s `[env]` section and re-deploy
 
-See also the related documentation on [Fly.io: Custom domains](https://fly.io/docs/networking/custom-domain/).
+Because we let Headscale issues its own TLS certificate, we don't need to use `fly certs add`. We need to use our own
+TLS certificate to enable the embedded DERP server, as it requires access to the TLS private key.
 
 ### Highly available Headscale deployment
 
@@ -144,7 +144,7 @@ __System variables__
 | `AWS_REGION`            | (automatic) |                                                                                                                                                |
 | `AWS_ENDPOINT_URL_S3`   | (automatic) |                                                                                                                                                |
 | `BUCKET_NAME`           | (automatic) |                                                                                                                                                |
-| `FLY_APP_NAME`          | (automatic) | Used to determine the Headscale server URL, if `HEADSCALE_SERVER_URL` is not set.                                                              |
+| `FLY_APP_NAME`          | (automatic) | Used to determine the Headscale server URL, if `HEADSCALE_SERVER_DOMAIN` is not set.                                                           |
 
 __Security variables__
 
@@ -157,8 +157,8 @@ __Headscale configuration variables__
 
 | Variable                                         | Default                                              | Description                                                                                                                                                                                                                                                                                        |
 |--------------------------------------------------|------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `HEADSCALE_SERVER_URL`                           | `https://${FLY_APP_NAME}.fly.dev`                    | URL of the Headscale server.                                                                                                                                                                                                                                                                       |
-| `HEADSCALE_DNS_BASE_DOMAIN`                      | `tailnet`                                            | Base domain for members in the Tailnet. This **must not** be a part of the `HEADSCALE_SERVER_URL`.                                                                                                                                                                                                 |
+| `HEADSCALE_SERVER_DOMAIN`                        | `${FLY_APP_NAME}.fly.dev`                            | URL of the Headscale server.                                                                                                                                                                                                                                                                       |
+| `HEADSCALE_DNS_BASE_DOMAIN`                      | `tailnet`                                            | Base domain for members in the Tailnet. This **must not** be a part of the `HEADSCALE_SERVER_DOMAIN`.                                                                                                                                                                                                 |
 | `HEADSCALE_LOG_LEVEL`                            | `info`                                               | Log level for the Headscale server.                                                                                                                                                                                                                                                                |
 | `HEADSCALE_PREFIXES_V4`                          | `100.64.0.0/10`                                      | Prefix for IP-v4 addresses of nodes in the Tailnet.                                                                                                                                                                                                                                                |
 | `HEADSCALE_PREFIXES_V6`                          | `fd7a:115c:a1e0::/48`                                | Prefix for IP-v6 addresses of nodes in the Tailnet.                                                                                                                                                                                                                                                |
@@ -174,6 +174,8 @@ __Headscale configuration variables__
 | `HEADSCALE_OIDC_EXPIRY`                          | `180d`                                               | The amount of time from a node is authenticated with OpenID until it expires and needs to reauthenticate. Setting the value to "0" will mean no expiry.                                                                                                                                            |
 | `HEADSCALE_OIDC_USE_EXPIRY_FROM_TOKEN`           | `false`                                              | Use the expiry from the token received from OpenID when the user logged in, this will typically lead to frequent need to reauthenticate and should only been enabled if you know what you are doing. If enabled, `HEADSCALE_OIDC_EXPIRY` is ignored.                                               |
 | `HEADSCALE_OIDC_ONLY_START_IF_OIDC_IS_AVAILABLE` | `true`                                               | Fail startup if the OIDC server cannot be reached.                                                                                                                                                                                                                                                 |
+| `HEADSCALE_ACME_URL`                             | `https://acme-v02.api.letsencrypt.org/directory`     | Enable the built-in DERP server.                                                                                                                                                                                                                                                                   |
+| `HEADSCALE_ACME_EMAIL`                           | na, required                                         | Enable the built-in DERP server.                                                                                                                                                                                                                                                                   |
 | `HEADSCALE_DERP_SERVER_ENABLED`                  | `true`                                               | Enable the built-in DERP server.                                                                                                                                                                                                                                                                   |
 | `HEADSCALE_DERP_URLS`                            | `https://controlplane.tailscale.com/derpmap/default` | The DERP map URLs to use (only when `HEADSCALE_DERP_SERVER_ENABLED` is `false`). Must be a comma-separated list that is valid YAML enclosed in `[ ... ]`.                                                                                                                                          |
 
@@ -190,7 +192,6 @@ __Maintenance variables__
 
 | Variable           | Default | Description                                                                                                                                                                                                                                                                                                   |
 |--------------------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `ENTRYPOINT_DEBUG` | n/a     | If set to `true`, enables logging of executed commands in the container entrypoint and prints out the Headscale configuration before startup. Use with caution, as it might reveal secret values to stdout (and thus into Fly.io's logging infrastructure).                                                   |
 | `ENTRYPOINT_IDLE`  | `false` | If set to `true`, go idle instead of starting the Headscale server. Will also go idle if an intermediate error occurs. Useful for recovering secrets when the deployment critically fails. Note that after a short time, Fly will turn off the machine since its health check won't be coming online.         |
 | `IMPORT_DATABASE`  | `false` | If set to `true`, the entrypoint will check for an `import-db.sqlite` file in the S3 bucket to restore, and use that instead of `litestream restore` if it exists. Note that the file will not be removed, so you should disable this option and remove the file from the bucket once the import is complete. |
 
