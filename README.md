@@ -55,9 +55,12 @@ you want to configure a custom domain).
 3. Run `fly storage create -a <app> -n <app>` to create an S3 object storage bucket that will contain the replication
 of the Headscale SQlite database.
 
-4. Run `fly secrets set NOISE_PRIVATE_KEY="privkey:$(openssl rand -hex 32)"` to generate the Noise private key
-for your Headscale server (this is a parameter for the secure communication between devices and the control plane).
-Note that if you change this secret, devices need to re-authenticate with the Headscale server.
+4. Gnerate private keys and store them as secrets in your app.
+
+    ```
+    fly secrets set NOISE_PRIVATE_KEY="privkey:$(openssl rand -hex 32)"
+    fly secrets set DERP_PRIVATE_KEY="privkey:$(openssl rand -hex 32)"
+    ```
 
 5. Generate an age keypair for encrypting your Litestream SQlite database replication in S3 by running
 
@@ -148,17 +151,18 @@ __System variables__
 
 __Security variables__
 
-| Variable            | Default           | Description                                                                                                                                            |
-|---------------------|-------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `AGE_SECRET_KEY`    | n/a, but required | [age] Secret key for encryption your Litestream SQLite replication.                                                                                    |
-| `NOISE_PRIVATE_KEY` | n/a, but required | Noise private key for Headscale. Generate with `echo privkey:$(openssl rand -hex 32)`. **Important:** Pass this value securely with `fly secrets set`. |
+| Variable            | Default                                                     | Description                                                                                                                                                             |
+|---------------------|-------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `AGE_SECRET_KEY`    | n/a, required                                               | [age] Secret key for encryption your Litestream SQLite replication.                                                                                                     |
+| `NOISE_PRIVATE_KEY` | n/a, required                                               | Noise private key for Headscale. Generate with `echo privkey:$(openssl rand -hex 32)`. **Important:** Pass this value securely with `fly secrets set`.                  |
+| `DERP_PRIVATE_KEY`  | n/a, required if `HEADSCALE_DERP_SERVER_ENABLED` is enabled | Private key for Headscale's embedded DERP server. Generate with `echo privkey:$(openssl rand -hex 32)`. **Important:** Pass this value securely with `fly secrets set`. |
 
 __Headscale configuration variables__
 
 | Variable                                         | Default                                              | Description                                                                                                                                                                                                                                                                                        |
 |--------------------------------------------------|------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `HEADSCALE_SERVER_DOMAIN`                        | `${FLY_APP_NAME}.fly.dev`                            | URL of the Headscale server.                                                                                                                                                                                                                                                                       |
-| `HEADSCALE_DNS_BASE_DOMAIN`                      | `tailnet`                                            | Base domain for members in the Tailnet. This **must not** be a part of the `HEADSCALE_SERVER_DOMAIN`.                                                                                                                                                                                                 |
+| `HEADSCALE_DNS_BASE_DOMAIN`                      | `tailnet`                                            | Base domain for members in the Tailnet. This **must not** be a part of the `HEADSCALE_SERVER_DOMAIN`.                                                                                                                                                                                              |
 | `HEADSCALE_LOG_LEVEL`                            | `info`                                               | Log level for the Headscale server.                                                                                                                                                                                                                                                                |
 | `HEADSCALE_PREFIXES_V4`                          | `100.64.0.0/10`                                      | Prefix for IP-v4 addresses of nodes in the Tailnet.                                                                                                                                                                                                                                                |
 | `HEADSCALE_PREFIXES_V6`                          | `fd7a:115c:a1e0::/48`                                | Prefix for IP-v6 addresses of nodes in the Tailnet.                                                                                                                                                                                                                                                |
@@ -188,10 +192,10 @@ __Litestream configuration variables__
 
 __Maintenance variables__
 
-| Variable           | Default | Description                                                                                                                                                                                                                                                                                                   |
-|--------------------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `ENTRYPOINT_IDLE`  | `false` | If set to `true`, go idle instead of starting the Headscale server. Will also go idle if an intermediate error occurs. Useful for recovering secrets when the deployment critically fails. Note that after a short time, Fly will turn off the machine since its health check won't be coming online.         |
-| `IMPORT_DATABASE`  | `false` | If set to `true`, the entrypoint will check for an `import-db.sqlite` file in the S3 bucket to restore, and use that instead of `litestream restore` if it exists. Note that the file will not be removed, so you should disable this option and remove the file from the bucket once the import is complete. |
+| Variable          | Default | Description                                                                                                                                                                                                                                                                                                   |
+|-------------------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `ENTRYPOINT_IDLE` | `false` | If set to `true`, go idle instead of starting the Headscale server. Will also go idle if an intermediate error occurs. Useful for recovering secrets when the deployment critically fails. Note that after a short time, Fly will turn off the machine since its health check won't be coming online.         |
+| `IMPORT_DATABASE` | `false` | If set to `true`, the entrypoint will check for an `import-db.sqlite` file in the S3 bucket to restore, and use that instead of `litestream restore` if it exists. Note that the file will not be removed, so you should disable this option and remove the file from the bucket once the import is complete. |
 
 ### Migrating to Headscale on Fly.io
 

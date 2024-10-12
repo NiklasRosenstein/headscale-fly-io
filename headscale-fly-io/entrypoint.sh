@@ -52,12 +52,20 @@ trap 'on_error' EXIT
 HEADSCALE_CONFIG_PATH=/etc/headscale/config.yaml
 HEADSCALE_DB_PATH=/var/lib/headscale/db.sqlite
 NOISE_PRIVATE_KEY_FILE=/var/lib/headscale/noise_private.key
+DERP_PRIVATE_KEY_FILE=/var/lib/headscale/derp_private.key
 
 # This file must be configured through a secret and mounted via the fly.toml configuration.
 # assert_file_exists $NOISE_PRIVATE_KEY_FILE
 assert_is_set NOISE_PRIVATE_KEY
 info "writing $NOISE_PRIVATE_KEY_FILE"
 echo "$NOISE_PRIVATE_KEY" > /$NOISE_PRIVATE_KEY_FILE
+
+export HEADSCALE_DERP_SERVER_ENABLED="${HEADSCALE_DERP_SERVER_ENABLED:-true}"
+if [ "${HEADSCALE_DERP_SERVER_ENABLED}" = "true" ]; then
+    assert_is_set DERP_PRIVATE_KEY
+    info "writing $DERP_PRIVATE_KEY_FILE"
+    echo "$DERP_PRIVATE_KEY" > /$DERP_PRIVATE_KEY_FILE
+fi
 
 # These should be available automatically simply by enabling the Fly.io Tigris object storage extension.
 assert_is_set AWS_ACCESS_KEY_ID
@@ -105,7 +113,6 @@ export HEADSCALE_LOG_LEVEL="${HEADSCALE_LOG_LEVEL:-info}"
 export HEADSCALE_PREFIXES_V4="${HEADSCALE_PREFIXES_V4:-100.64.0.0/10}"
 export HEADSCALE_PREFIXES_V6="${HEADSCALE_PREFIXES_V6:-fd7a:115c:a1e0::/48}"
 export HEADSCALE_PREFIXES_ALLOCATION="${HEADSCALE_PREFIXES_ALLOCATION:-random}"
-export HEADSCALE_DERP_SERVER_ENABLED="${HEADSCALE_DERP_SERVER_ENABLED:-true}"
 export HEADSCALE_DERP_URLS="${HEADSCALE_DERP_URLS:-https://controlplane.tailscale.com/derpmap/default}"
 if [ "${HEADSCALE_DERP_SERVER_ENABLED}" = "true" ]; then
     # We don't want to use set any DERP map URLs if we use the embedded DERP server.

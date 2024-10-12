@@ -36,7 +36,7 @@ derp:
     region_name: Headscale Embedded DERP
     stun_listen_addr: 0.0.0.0:3478
     ipv6: ${FLY_PUBLIC_IP}
-    private_key_path: /var/lib/headscale/noise_private.key
+    private_key_path: /var/lib/headscale/derp_private.key
   urls: [ ${HEADSCALE_DERP_URLS} ]
 
 dns:
