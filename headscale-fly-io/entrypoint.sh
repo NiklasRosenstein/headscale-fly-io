@@ -98,6 +98,10 @@ EOF
 info "configuring mc"
 mc alias set s3 "$AWS_ENDPOINT_URL_S3" "$AWS_ACCESS_KEY_ID" "$AWS_SECRET_ACCESS_KEY"
 
+# Setup S3 mountpoint where Letsencrypt certificates will be stored.
+GEESEFS_MEMORY_LIMIT="${GEESEFS_MEMORY_LIMIT:-64}"
+info_run geesefs --memory-limit "$GEESEFS_MEMORY_LIMIT" --endpoint "$AWS_ENDPOINT_URL_S3" "$BUCKET_NAME:" /mnt/s3
+
 # Set default values for configuration variables for use with envsubst.
 export HEADSCALE_SERVER_DOMAIN="${HEADSCALE_SERVER_DOMAIN:-${FLY_APP_NAME}.fly.dev}"
 export HEADSCALE_DNS_BASE_DOMAIN="${HEADSCALE_DNS_BASE_DOMAIN:-tailnet}"
@@ -105,6 +109,7 @@ export HEADSCALE_LOG_LEVEL="${HEADSCALE_LOG_LEVEL:-info}"
 export HEADSCALE_PREFIXES_V4="${HEADSCALE_PREFIXES_V4:-100.64.0.0/10}"
 export HEADSCALE_PREFIXES_V6="${HEADSCALE_PREFIXES_V6:-fd7a:115c:a1e0::/48}"
 export HEADSCALE_PREFIXES_ALLOCATION="${HEADSCALE_PREFIXES_ALLOCATION:-random}"
+export HEADSCALE_ACME_URL="${HEADSCALE_ACME_URL:-https://acme-v02.api.letsencrypt.org/directory}"
 export HEADSCALE_DERP_SERVER_ENABLED="${HEADSCALE_DERP_SERVER_ENABLED:-true}"
 export HEADSCALE_DERP_URLS="${HEADSCALE_DERP_URLS:-https://controlplane.tailscale.com/derpmap/default}"
 if [ "${HEADSCALE_DERP_SERVER_ENABLED}" = "true" ]; then

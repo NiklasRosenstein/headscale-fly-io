@@ -115,10 +115,10 @@ your `fly.toml` configuration file.
 ### Using a custom domain
 
 1. Create a CNAME entry for your Fly.io application
-2. Run `fly certs add <custom_domain>`
-3. Set the `HEADSCALE_SERVER_DOMAIN=<custom_domain>` in the `fly.toml`'s `[env]` section and re-deploy
+2. Set the `HEADSCALE_SERVER_DOMAIN=<custom_domain>` in the `fly.toml`'s `[env]` section and re-deploy
 
-See also the related documentation on [Fly.io: Custom domains](https://fly.io/docs/networking/custom-domain/).
+Because we let Headscale issues its own TLS certificate, we don't need to use `fly certs add`. We need to use our own
+TLS certificate to enable the embedded DERP server, as it requires access to the TLS private key.
 
 ### Highly available Headscale deployment
 
@@ -174,6 +174,8 @@ __Headscale configuration variables__
 | `HEADSCALE_OIDC_EXPIRY`                          | `180d`                                               | The amount of time from a node is authenticated with OpenID until it expires and needs to reauthenticate. Setting the value to "0" will mean no expiry.                                                                                                                                            |
 | `HEADSCALE_OIDC_USE_EXPIRY_FROM_TOKEN`           | `false`                                              | Use the expiry from the token received from OpenID when the user logged in, this will typically lead to frequent need to reauthenticate and should only been enabled if you know what you are doing. If enabled, `HEADSCALE_OIDC_EXPIRY` is ignored.                                               |
 | `HEADSCALE_OIDC_ONLY_START_IF_OIDC_IS_AVAILABLE` | `true`                                               | Fail startup if the OIDC server cannot be reached.                                                                                                                                                                                                                                                 |
+| `HEADSCALE_ACME_URL`                             | `https://acme-v02.api.letsencrypt.org/directory`     | Enable the built-in DERP server.                                                                                                                                                                                                                                                                   |
+| `HEADSCALE_ACME_EMAIL`                           | na, required                                         | Enable the built-in DERP server.                                                                                                                                                                                                                                                                   |
 | `HEADSCALE_DERP_SERVER_ENABLED`                  | `true`                                               | Enable the built-in DERP server.                                                                                                                                                                                                                                                                   |
 | `HEADSCALE_DERP_URLS`                            | `https://controlplane.tailscale.com/derpmap/default` | The DERP map URLs to use (only when `HEADSCALE_DERP_SERVER_ENABLED` is `false`). Must be a comma-separated list that is valid YAML enclosed in `[ ... ]`.                                                                                                                                          |
 
