@@ -110,6 +110,12 @@ export HEADSCALE_LOG_LEVEL="${HEADSCALE_LOG_LEVEL:-info}"
 export HEADSCALE_PREFIXES_V4="${HEADSCALE_PREFIXES_V4:-100.64.0.0/10}"
 export HEADSCALE_PREFIXES_V6="${HEADSCALE_PREFIXES_V6:-fd7a:115c:a1e0::/48}"
 export HEADSCALE_PREFIXES_ALLOCATION="${HEADSCALE_PREFIXES_ALLOCATION:-random}"
+export HEADSCALE_DERP_SERVER_ENABLED="${HEADSCALE_DERP_SERVER_ENABLED:-true}"
+export HEADSCALE_DERP_URLS="${HEADSCALE_DERP_URLS:-https://controlplane.tailscale.com/derpmap/default}"
+if [ "${HEADSCALE_DERP_SERVER_ENABLED}" = "true" ]; then
+    # We don't want to use set any DERP map URLs if we use the embedded DERP server.
+    export HEADSCALE_DERP_URLS=""
+fi
 
 # Generate the Headscale configuration file by substituting environment variables.
 info "generating $HEADSCALE_CONFIG_PATH"
