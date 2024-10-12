@@ -98,11 +98,6 @@ EOF
 info "configuring mc"
 mc alias set s3 "$AWS_ENDPOINT_URL_S3" "$AWS_ACCESS_KEY_ID" "$AWS_SECRET_ACCESS_KEY"
 
-if [ "${ENTRYPOINT_DEBUG:-}" = "true" ]; then
-    debug "ENTRYPOINT_DEBUG is set: set -x"
-    set -x
-fi
-
 # Set default values for configuration variables for use with envsubst.
 export HEADSCALE_SERVER_URL="${HEADSCALE_SERVER_URL:-https://${FLY_APP_NAME}.fly.dev}"
 export HEADSCALE_DNS_BASE_DOMAIN="${HEADSCALE_DNS_BASE_DOMAIN:-tailnet}"
@@ -134,12 +129,6 @@ if [ -n "${HEADSCALE_OIDC_ISSUER:-}" ]; then
     info "generating OIDC appendix for $HEADSCALE_CONFIG_PATH"
     # shellcheck disable=SC3060
     envsubst < "${HEADSCALE_CONFIG_PATH/.yaml/-oidc.template.yaml}" >> $HEADSCALE_CONFIG_PATH
-fi
-
-if [ "${ENTRYPOINT_DEBUG:-}" = "true" ]; then
-    debug "contents of $HEADSCALE_CONFIG_PATH:"
-    cat "$HEADSCALE_CONFIG_PATH"
-    debug "end contents of $HEADSCALE_CONFIG_PATH"
 fi
 
 # Check if there is an existing database to import from S3.
