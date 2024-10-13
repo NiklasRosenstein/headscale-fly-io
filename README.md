@@ -28,14 +28,12 @@ __Contents__
 <!-- toc -->
 * [Prerequisites](#prerequisites)
 * [Installation](#installation)
-* [Admitting machines to the network](#admitting-machines-to-the-network)
+* [Usage](#usage)
 * [Updates](#updates)
 * [Advanced configuration and usage](#advanced-configuration-and-usage)
-  * [Remote control Headscale via the CLI](#remote-control-headscale-via-the-cli)
-  * [Using ACLs](#using-acls)
+  * [ACLs](#acls)
   * [Configuring OIDC](#configuring-oidc)
   * [Using a custom domain](#using-a-custom-domain)
-  * [Highly available Headscale deployment](#highly-available-headscale-deployment)
   * [Metrics](#metrics)
   * [Environment variables](#environment-variables)
   * [Migrating to Headscale on Fly.io](#migrating-to-headscale-on-flyio)
@@ -52,69 +50,45 @@ __Contents__
 
 ## Installation
 
-1. Take the [`fly.example.toml`](./fly.example.toml) as a starting point and update at least the application name and
-region. The application name must be globally unique and will be used as the domain name of your Headscale control
-plane server (e.g. `https://<app>.fly.dev`). (Read more in the [Advanced configuration](#advanced-configuration) if
-you want to configure a custom domain).
+Copy [`fly.example.toml`](./fly.example.toml) to a `fly.toml` file and modify it. The minimum change you need to make
+is to update the `app` field. Unless you configure a [custom domain](#using-a-custom-domain), this will define the name
+of your Headscale server (i.e. `https://<app>.fly.dev`).
 
-2. Run `fly apps create <app>` (using the same app name you've set in `fly.toml`).
+You then need to create the app, create object storage and initialize secret values that Headscale requires to run.
+These steps can be performed with the following commands. Note that the storage name can be anything, but if you don't
+have a better name, just give it the same name as the app.
 
-3. Run `fly storage create -a <app> -n <app>` to create an S3 object storage bucket that will contain the replication
-of the Headscale SQlite database.
+    $ fly apps create <app>
+    $ fly storage create -a <app> -n <name>
+    $ age-keygen -o age.privkey
+    $ fly secrets set NOISE_PRIVATE_KEY="privkey:$(openssl rand -hex 32)" AGE_SECRET_KEY="$(tail -n1 age.privkey)"
 
-4. Run `fly secrets set NOISE_PRIVATE_KEY="privkey:$(openssl rand -hex 32)"` to generate the Noise private key
-for your Headscale server (this is a parameter for the secure communication between devices and the control plane).
-Note that if you change this secret, devices need to re-authenticate with the Headscale server.
+All that's left now is to deploy the application. After initial deployment, you should scale the application down to
+one, (or pass `--ha=false` to the deploy command), as the initial deploy will default to set the machine count to two.
+Despite the SQlite database being replicated, it does not support multiple users that independently write data to the
+same database.
 
-5. Generate an age keypair for encrypting your Litestream SQlite database replication in S3 by running
+    $ fly deploy
+    $ fly scale count 1
 
-    ```
-    age-keygen -o age.privkey
-    fly secrets set AGE_SECRET_KEY="$(tail -n1 age.privkey)"
-    rm age.privkey
-    ```
+> You could run the SQlite database with something like [LiteFS] to achieve a highly available installation of
+> Headscale, but that is not currently supported in this project.
 
-5. Run `fly deploy --ha=false` to deploy the application. Note that `fly deploy` is sufficient on subsequent runs
-as Fly will not scale up the application using this command except for the initial deployment, where high-availability
-is the default.
+  [LiteFS]: https://github.com/superfly/litefs
 
-> __Important__: You should not run your Fly application with more than one machine unless you have followed the
-> advanced section on [Highly available Headscale deployment](#highly-available-headscale-deployment). If you didn't use
-> the `--ha=false` option on initial deploy, run `fly scale count 1` to ensure that Headscale is only deployed to one
-> machine.
-
-## Admitting machines to the network
+## Usage
 
 On a device, run
 
     $ tailscale up --login-server https://<app>.fly.dev
 
 Following the link that will be displayed in the console will give you the `headscale` command to run to register
-the device. You may need to create a user first with the `headscale user create` command.
+the device. You may need to create a user first with the `headscale user create` command. If you have not
+[configured OIDC](#configuring-oidc), you need to use the Headscale CLI to register the node in the control plane.
 
-Shell into your Headscale deployment using
-
-    $ fly ssh console
-
-Note that you can set up OIDC to automatically admit new devices to the VPN if a user successfully authenticates.
-
-## Updates
-
-You should use an immutable tag in your `fly.toml` configuration file's `[build.image]` parameter. Using a mutable tag,
-such as `:main` (pointing to the latest version of the `main` branch of this repository), does not guarantee that your
-deployment comes up with the latest image version as a prior version may be cached.
-
-Simply run `fly deploy` after updating the `[build.image]`. Note that there will be a brief downtime unless you configured a highly available deployment.
-
-## Advanced configuration and usage
-
-### Remote control Headscale via the CLI
-
-We expose the gRPC endpoint that allows you to remote-control Headscale via the CLI automatically. You need to generate
-API key via SSH before you can connect remotely:
-
-    $ fly ssh console
-    ssh > headscale apikeys create --expiration 90d
+For this you can either shell into your Headscale deployment via `fly ssh console` and use the `headscale` command
+there, or use the Headscale CLI locally to remotely control it. For this, you must have first generated an API key
+by connecting via SSH and running `headscale apikeys create`.
 
 Then, locally, make sure you have the same version of the Headscale CLI installed that is running on your Fly.io app
 and follow [as documented](https://headscale.net/ref/remote-cli/?h=api#download-and-configure-headscale). We use the
@@ -124,7 +98,19 @@ same typical gRPC port (`50443`).
     $ export HEADSCALE_CLI_API_KEY=...
     $ headscale node list
 
-### Using ACLs
+## Updates
+
+You should use an immutable tag in your `fly.toml` configuration file's `[build.image]` parameter. Using a mutable tag,
+such as `:main` (pointing to the latest version of the `main` branch of this repository), does not guarantee that your
+deployment comes up with the latest image version as a prior version may be cached.
+
+Simply run `fly deploy` after updating the `[build.image]`. Note that there will be a brief downtime unless you
+configured a highly available deployment. Be sure to check the release notes to see if there are any breaking changes
+that require an update to your apps configuration!
+
+## Advanced configuration and usage
+
+### ACLs
 
 We configure Headscale to store the ACL in the database instead of from file, this allows updating the ACLs without
 a `fly deploy` on every update. Follow the above steps to remote-control the Headscale server and then use the
@@ -148,10 +134,6 @@ your `fly.toml` configuration file.
 3. Set the `HEADSCALE_DOMAIN_NAME=<custom_domain>` in the `fly.toml`'s `[env]` section and re-deploy
 
 See also the related documentation on [Fly.io: Custom domains](https://fly.io/docs/networking/custom-domain/).
-
-### Highly available Headscale deployment
-
-TODO (Using LitefS or rqlite?)
 
 ### Metrics
 
