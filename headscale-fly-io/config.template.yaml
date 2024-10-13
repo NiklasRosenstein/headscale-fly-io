@@ -1,11 +1,8 @@
 server_url: https://${HEADSCALE_DOMAIN_NAME}
 listen_addr: 0.0.0.0:8080
 metrics_listen_addr: 0.0.0.0:8081
-
-# TODO: Expose GRPC API? So that it can be accessed with the headscale CLI
-#       externally, see https://github.com/juanfont/headscale/blob/main/docs/remote-cli.md
-# grpc_listen_addr: 0.0.0.0:8081
-# grpc_allow_insecure: true
+grpc_listen_addr: 0.0.0.0:50443
+grpc_allow_insecure: true # We use Fly.io's TLS termination.
 
 ephemeral_node_inactivity_timeout: ${HEADSCALE_EPHEMERAL_NODE_INACTIVITY_TIMEOUT}
 

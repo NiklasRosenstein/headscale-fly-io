@@ -31,6 +31,8 @@ __Contents__
 * [Admitting machines to the network](#admitting-machines-to-the-network)
 * [Updates](#updates)
 * [Advanced configuration and usage](#advanced-configuration-and-usage)
+  * [Remote control Headscale via the CLI](#remote-control-headscale-via-the-cli)
+  * [Using ACLs](#using-acls)
   * [Configuring OIDC](#configuring-oidc)
   * [Using a custom domain](#using-a-custom-domain)
   * [Highly available Headscale deployment](#highly-available-headscale-deployment)
@@ -105,6 +107,28 @@ deployment comes up with the latest image version as a prior version may be cach
 Simply run `fly deploy` after updating the `[build.image]`. Note that there will be a brief downtime unless you configured a highly available deployment.
 
 ## Advanced configuration and usage
+
+### Remote control Headscale via the CLI
+
+We expose the gRPC endpoint that allows you to remote-control Headscale via the CLI automatically. You need to generate
+API key via SSH before you can connect remotely:
+
+    $ fly ssh console
+    ssh > headscale apikeys create --expiration 90d
+
+Then, locally, make sure you have the same version of the Headscale CLI installed that is running on your Fly.io app
+and follow [as documented](https://headscale.net/ref/remote-cli/?h=api#download-and-configure-headscale). We use the
+same typical gRPC port (`50443`).
+
+    $ export HEADSCALE_CLI_ADDRESS=${FLY_APP_NAME}.fly.dev:50443
+    $ export HEADSCALE_CLI_API_KEY=...
+    $ headscale node list
+
+### Using ACLs
+
+We configure Headscale to store the ACL in the database instead of from file, this allows updating the ACLs without
+a `fly deploy` on every update. Follow the above steps to remote-control the Headscale server and then use the
+`headscale policy get` and `headscale policy set` commands.
 
 ### Configuring OIDC
 

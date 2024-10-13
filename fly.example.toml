@@ -25,6 +25,15 @@ swap_size_mb = 128
     timeout = "5s"
     path = "/health"
 
+[[services]]
+  internal_port = 50443
+  protocol = "tcp"
+  [[services.ports]]
+    handlers = ["tls"]
+    port = "50443"
+  [services.ports.tls_options]
+    alpn = ["h2"]
+
 [[metrics]]
   port = 8081
   path = "/metrics"
