@@ -12,10 +12,11 @@ jobs:
       name: integration-test
       url: https://headlscale-fly-io-integration.fly.dev
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: Get short sha
         id: vars
         run: echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-
       - name: Install flyctl
         run: curl -L https://fly.io/install.sh | sh
       - name: Update fly.toml
