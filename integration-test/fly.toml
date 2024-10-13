@@ -1,0 +1,37 @@
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = "headscale-fly-io-integration"
+primary_region = "fra"
+swap_size_mb = 128
+
+[build]
+  image = "ghcr.io/niklasrosenstein/headscale-fly-io:$VERSION"
+
+[deploy]
+  # NOTE: We usually recommend the immediate strategy because other deployment strategies require HA
+  #       compatibility, however for integration testing we use canary to make `fly deploy` fail if the
+  #       instance does not come up healthy.
+  strategy = "canary"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    timeout = "5s"
+    path = "/health"
+
+[[metrics]]
+  port = 8081
+  path = "/metrics"
+  processes = ["app"]
+
+[[vm]]
+  size = "shared-cpu-1x"
