@@ -1,0 +1,24 @@
+name: Integration Test
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  deployment:
+    runs-on: ubuntu-latest
+    environment:
+      name: integration-test
+      url: https://headlscale-fly-io-integration.fly.dev
+    steps:
+      - name: Get short sha
+        id: vars
+        run: echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Install flyctl
+        run: curl -L https://fly.io/install.sh | sh
+      - name: Update fly.toml
+        run: sed -i "s/\$VERSION/sha-${{ steps.vars.outputs.short_sha }}/" integration-test/fly.toml
+      - name: Deploy
+        run: cd integration-test && fly-deploy
+
