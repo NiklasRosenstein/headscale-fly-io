@@ -13,6 +13,10 @@ The default configuration is to use the cheapested VM size available, `shared-cp
 to support tens if not up to 100 nodes in your VPN while costing you approx. 1.94 USD/mo. Tigris object storage has a
 free allowance of 5GB/mo, which you will likely not exceed.
 
+Note that, because Tailscale connected devices report back to the control plane on a regular, short interval, you won't
+be able to benefit from Fly.io technically being able to automatically scale your application down to 0, unless you have
+no nodes connected.
+
   [Fly.io]: https://fly.io
   [Headscale]: https://github.com/juanfont/headscale
   [Litestream]: https://litestream.io/
@@ -163,6 +167,7 @@ __Headscale configuration variables__
 | `HEADSCALE_PREFIXES_V4`                          | `100.64.0.0/10`                      | Prefix for IP-v4 addresses of nodes in the Tailnet.                                                                                                                                                                                                                                                |
 | `HEADSCALE_PREFIXES_V6`                          | `fd7a:115c:a1e0::/48`                | Prefix for IP-v6 addresses of nodes in the Tailnet.                                                                                                                                                                                                                                                |
 | `HEADSCALE_PREFIXES_ALLOCATION`                  | `random`                             | How IPs are allocated to nodes joining the Tailnet. Can be `random` or `sequential`.                                                                                                                                                                                                               |
+| `HEADSCALE_EPHEMERAL_NODE_INACTIVITY_TIMEOUT`    | `30m`                                | The time after which an inactive ephemeral node is deleted from the control plane.                                                                                                                                                                                                                 |
 | `HEADSCALE_OIDC_ISSUER`                          | n/a                                  | If set, enables OIDC configuration. Must be set to the URL of the OIDC issuer. For example, if you use Keycloak, it might look something like `https://mykeycloak.com/realms/main`                                                                                                                 |
 | `HEADSCALE_OIDC_CLIENT_ID`                       | n/a, but required if oidc is enabled | The OIDC client ID.                                                                                                                                                                                                                                                                                |
 | `HEADSCALE_OIDC_CLIENT_SECRET`                   | n/a, but required if oidc is enabled | The OIDC client secret. **Important:** Configure this through `fly secrets set`.                                                                                                                                                                                                                   |
