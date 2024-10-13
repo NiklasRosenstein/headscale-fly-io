@@ -182,12 +182,13 @@ __Headscale configuration variables__
 
 __Litestream configuration variables__
 
-| Variable                              | Default | Description                                                                                                                                                              |
-|---------------------------------------|---------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `LITESTREAM_ENABLED`                  | `true`  | Whether to restore and replicate the SQlite database with Litestream. You likely never want to turn this option off, as you will loose your SQlite database on restarts. |
-| `LITESTREAM_RETENTION`                | `24h`   | Configure the Litestream retention period. Retention is enforced periodically and can be changed with `LITESTREAM_RETENTION_CHECK_INTERVAL`.                             |
-| `LITESTREAM_RETENTION_CHECK_INTERVAL` | `1h`    | The interval at which retention should be applied.                                                                                                                       |
-| `LITESTREAM_VALIDATION_INTERVAL`      | `12h`   | The interval at which Litestream does a separate restore of the database and validates the result vs. the current database.                                              |
+| Variable                              | Default | Description                                                                                                                                                                                     |
+|---------------------------------------|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `LITESTREAM_ENABLED`                  | `true`  | Whether to restore and replicate the SQlite database with Litestream. You likely never want to turn this option off, as you will loose your SQlite database on restarts.                        |
+| `LITESTREAM_RETENTION`                | `24h`   | Configure the Litestream retention period. Retention is enforced periodically and can be changed with `LITESTREAM_RETENTION_CHECK_INTERVAL`.                                                    |
+| `LITESTREAM_RETENTION_CHECK_INTERVAL` | `1h`    | The interval at which retention should be applied.                                                                                                                                              |
+| `LITESTREAM_VALIDATION_INTERVAL`      | `12h`   | The interval at which Litestream does a separate restore of the database and validates the result vs. the current database.                                                                     |
+| `LITESTREAM_SYNC_INTERVAL`            | `10s`   | Frequency in which frames are pushed to the replica. Note that Litestream's typical default is `1s`, and increasing this frequency can increase storage costs due to higher API request counts. |
 
 __Maintenance variables__
 

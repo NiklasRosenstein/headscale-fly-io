@@ -82,6 +82,8 @@ dbs:
     path: headscale.db
     region: $AWS_REGION
     endpoint: $AWS_ENDPOINT_URL_S3
+    # See https://litestream.io/reference/config/#replica-settings
+    sync-interval: "${LITESTREAM_SYNC_INTERVAL:-10s}"
     # See https://litestream.io/reference/config/#encryption
     age:
       identities:
