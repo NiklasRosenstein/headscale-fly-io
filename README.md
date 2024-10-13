@@ -39,6 +39,7 @@ __Contents__
   * [Migrating to Headscale on Fly.io](#migrating-to-headscale-on-flyio)
   * [Migrating from Postgres](#migrating-from-postgres)
 * [Development](#development)
+* [Integration testing](#integration-testing)
 <!-- end toc -->
 
 ## Prerequisites
@@ -289,3 +290,8 @@ To update the ToC in this file, run
 Releases a tagged in the form of `<version>-headscale-<headscale_version>`. Requires that the [GitHub CLI].
 
     $ ./scripts/release 0.1.0-headscale-0.23.0
+
+## Integration testing
+
+We perform a lightweight integration test by deploying the application to a Fly.io app after successful build on
+the `main` branch, which will fail if the application doesn't come up healthy.
