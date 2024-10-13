@@ -73,4 +73,4 @@ jobs:
       - name: Update fly.toml
         run: sed -i "s/\$VERSION/sha-${{ steps.vars.outputs.short_sha }}/" integration-test/fly.toml
       - name: Deploy
-        run: cd integration-test && fly-deploy
+        run: cd integration-test && fly deploy
