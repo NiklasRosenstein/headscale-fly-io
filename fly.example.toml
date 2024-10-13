@@ -34,6 +34,6 @@ swap_size_mb = 128
   size = "shared-cpu-1x"
 
 # [env]
-#   HEADSCALE_SERVER_URL = "https://vpn.example.com"
+#   HEADSCALE_DOMAIN_NAME = "vpn.example.com"
 #   HEADSCALE_OIDC_ISSUER = "https://mykeycloak.org/realms/main"
 #   HEADSCALE_OIDC_CLIENT_ID = "headscale"
