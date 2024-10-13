@@ -52,12 +52,20 @@ trap 'on_error' EXIT
 HEADSCALE_CONFIG_PATH=/etc/headscale/config.yaml
 HEADSCALE_DB_PATH=/var/lib/headscale/db.sqlite
 NOISE_PRIVATE_KEY_FILE=/var/lib/headscale/noise_private.key
+DERP_PRIVATE_KEY_FILE=/var/lib/headscale/derp_private.key
 
 # This file must be configured through a secret and mounted via the fly.toml configuration.
 # assert_file_exists $NOISE_PRIVATE_KEY_FILE
 assert_is_set NOISE_PRIVATE_KEY
 info "writing $NOISE_PRIVATE_KEY_FILE"
 echo "$NOISE_PRIVATE_KEY" > /$NOISE_PRIVATE_KEY_FILE
+
+export HEADSCALE_DERP_SERVER_ENABLED="${HEADSCALE_DERP_SERVER_ENABLED:-true}"
+if [ "${HEADSCALE_DERP_SERVER_ENABLED}" = "true" ]; then
+    assert_is_set DERP_PRIVATE_KEY
+    info "writing $DERP_PRIVATE_KEY_FILE"
+    echo "$DERP_PRIVATE_KEY" > /$DERP_PRIVATE_KEY_FILE
+fi
 
 # These should be available automatically simply by enabling the Fly.io Tigris object storage extension.
 assert_is_set AWS_ACCESS_KEY_ID
@@ -98,18 +106,18 @@ EOF
 info "configuring mc"
 mc alias set s3 "$AWS_ENDPOINT_URL_S3" "$AWS_ACCESS_KEY_ID" "$AWS_SECRET_ACCESS_KEY"
 
-if [ "${ENTRYPOINT_DEBUG:-}" = "true" ]; then
-    debug "ENTRYPOINT_DEBUG is set: set -x"
-    set -x
-fi
-
 # Set default values for configuration variables for use with envsubst.
-export HEADSCALE_SERVER_URL="${HEADSCALE_SERVER_URL:-https://${FLY_APP_NAME}.fly.dev}"
+export HEADSCALE_SERVER_DOMAIN="${HEADSCALE_SERVER_DOMAIN:-${FLY_APP_NAME}.fly.dev}"
 export HEADSCALE_DNS_BASE_DOMAIN="${HEADSCALE_DNS_BASE_DOMAIN:-tailnet}"
 export HEADSCALE_LOG_LEVEL="${HEADSCALE_LOG_LEVEL:-info}"
 export HEADSCALE_PREFIXES_V4="${HEADSCALE_PREFIXES_V4:-100.64.0.0/10}"
 export HEADSCALE_PREFIXES_V6="${HEADSCALE_PREFIXES_V6:-fd7a:115c:a1e0::/48}"
 export HEADSCALE_PREFIXES_ALLOCATION="${HEADSCALE_PREFIXES_ALLOCATION:-random}"
+export HEADSCALE_DERP_URLS="${HEADSCALE_DERP_URLS:-https://controlplane.tailscale.com/derpmap/default}"
+if [ "${HEADSCALE_DERP_SERVER_ENABLED}" = "true" ]; then
+    # We don't want to use set any DERP map URLs if we use the embedded DERP server.
+    export HEADSCALE_DERP_URLS=""
+fi
 
 # Generate the Headscale configuration file by substituting environment variables.
 info "generating $HEADSCALE_CONFIG_PATH"
@@ -128,12 +136,6 @@ if [ -n "${HEADSCALE_OIDC_ISSUER:-}" ]; then
     info "generating OIDC appendix for $HEADSCALE_CONFIG_PATH"
     # shellcheck disable=SC3060
     envsubst < "${HEADSCALE_CONFIG_PATH/.yaml/-oidc.template.yaml}" >> $HEADSCALE_CONFIG_PATH
-fi
-
-if [ "${ENTRYPOINT_DEBUG:-}" = "true" ]; then
-    debug "contents of $HEADSCALE_CONFIG_PATH:"
-    cat "$HEADSCALE_CONFIG_PATH"
-    debug "end contents of $HEADSCALE_CONFIG_PATH"
 fi
 
 # Check if there is an existing database to import from S3.

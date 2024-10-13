@@ -1,4 +1,4 @@
-server_url: https://${HEADSCALE_SERVER_URL}
+server_url: https://${HEADSCALE_SERVER_DOMAIN}
 listen_addr: 0.0.0.0:8080
 metrics_listen_addr: 0.0.0.0:8081
 
@@ -29,8 +29,16 @@ policy:
   path: ""  # TODO: Support ACL policy files?
 
 derp:
-  urls:
-  - https://controlplane.tailscale.com/derpmap/default
+  server:
+    enabled: ${HEADSCALE_DERP_SERVER_ENABLED}
+    region_id: 999
+    region_code: headscale-${PRIMARY_REGION}
+    region_name: Headscale Embedded DERP
+    # See https://fly.io/docs/networking/udp-and-tcp/
+    stun_listen_addr: fly-global-services:3478
+    ipv6: ${FLY_PUBLIC_IP}
+    private_key_path: /var/lib/headscale/derp_private.key
+  urls: [ ${HEADSCALE_DERP_URLS} ]
 
 dns:
   base_domain: ${HEADSCALE_DNS_BASE_DOMAIN}
