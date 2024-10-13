@@ -1,4 +1,4 @@
-server_url: https://${HEADSCALE_SERVER_URL}
+server_url: https://${HEADSCALE_DOMAIN_NAME}
 listen_addr: 0.0.0.0:8080
 metrics_listen_addr: 0.0.0.0:8081
 

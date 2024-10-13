@@ -103,8 +103,14 @@ if [ "${ENTRYPOINT_DEBUG:-}" = "true" ]; then
     set -x
 fi
 
+# The HEADSCALE_SERVER_URL variable was removed.
+if [ -n "${HEADSCALE_SERVER_URL:-}" ]; then
+    error "HEADSCALE_SERVER_URL is no longer supported, set HEADSCALE_DOMAIN_NAME instead"
+    exit 1
+fi
+
 # Set default values for configuration variables for use with envsubst.
-export HEADSCALE_SERVER_URL="${HEADSCALE_SERVER_URL:-https://${FLY_APP_NAME}.fly.dev}"
+export HEADSCALE_DOMAIN_NAME="${HEADSCALE_DOMAIN_NAME:-${FLY_APP_NAME}.fly.dev}"
 export HEADSCALE_DNS_BASE_DOMAIN="${HEADSCALE_DNS_BASE_DOMAIN:-tailnet}"
 export HEADSCALE_LOG_LEVEL="${HEADSCALE_LOG_LEVEL:-info}"
 export HEADSCALE_PREFIXES_V4="${HEADSCALE_PREFIXES_V4:-100.64.0.0/10}"
