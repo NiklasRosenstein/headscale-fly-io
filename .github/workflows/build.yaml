@@ -62,7 +62,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: integration-test
-      url: https://headlscale-fly-io-integration.fly.dev
+      url: https://headscale-fly-io-integration.fly.dev
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
