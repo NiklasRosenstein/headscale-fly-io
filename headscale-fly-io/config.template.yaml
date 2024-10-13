@@ -15,6 +15,9 @@ log:
 noise:
   private_key_path: /var/lib/headscale/noise_private.key
 
+policy:
+  mode: database
+
 database:
   type: sqlite
   sqlite:
@@ -25,10 +28,6 @@ prefixes:
   v6: ${HEADSCALE_PREFIXES_V6}
   v4: ${HEADSCALE_PREFIXES_V4}
   allocation: ${HEADSCALE_PREFIXES_ALLOCATION}
-
-policy:
-  mode: file
-  path: ""  # TODO: Support ACL policy files?
 
 derp:
   urls:
