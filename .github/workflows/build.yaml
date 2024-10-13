@@ -48,7 +48,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
-          push: true
+          push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64,linux/arm64
@@ -57,6 +57,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   deployment:
+    if: ${{ github.event_name != 'pull_request' }}
     needs: docker
     runs-on: ubuntu-latest
     environment:
