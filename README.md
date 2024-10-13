@@ -66,9 +66,9 @@ Note that if you change this secret, devices need to re-authenticate with the He
 5. Generate an age keypair for encrypting your Litestream SQlite database replication in S3 by running
 
     ```
-    $ age-keygen -o age.privkey
-    $ fly secrets set AGE_SECRET_KEY="$(tail -n1 age.privkey)"
-    $ rm age.privkey
+    age-keygen -o age.privkey
+    fly secrets set AGE_SECRET_KEY="$(tail -n1 age.privkey)"
+    rm age.privkey
     ```
 
 5. Run `fly deploy --ha=false` to deploy the application. Note that `fly deploy` is sufficient on subsequent runs
