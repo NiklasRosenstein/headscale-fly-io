@@ -13,6 +13,10 @@ The default configuration is to use the cheapested VM size available, `shared-cp
 to support tens if not up to 100 nodes in your VPN while costing you approx. 1.94 USD/mo. Tigris object storage has a
 free allowance of 5GB/mo, which you will likely not exceed.
 
+Note that, because Tailscale connected devices report back to the control plane on a regular, short interval, you won't
+be able to benefit from Fly.io technically being able to automatically scale your application down to 0, unless you have
+no nodes connected.
+
   [Fly.io]: https://fly.io
   [Headscale]: https://github.com/juanfont/headscale
   [Litestream]: https://litestream.io/
