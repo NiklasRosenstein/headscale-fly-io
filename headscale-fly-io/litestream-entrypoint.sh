@@ -15,12 +15,12 @@
 #   - BUCKET_PATH
 #     The path in the S3 bucket to replicate the database to.
 #
-#   - AGE_PRIVATE_KEY
+#   - AGE_SECRET_KEY
 #     Private key generated with the age-keygen command for encrypting the Litestream replication,
 #
 #   - AGE_PUBLIC_KEY [optional]
-#     If set, it must be the public key matching AGE_PRIVATE_KEY. If not set, the age-keygen tool must be
-#     available so it can be derived from the AGE_PRIVATE_KEY.
+#     If set, it must be the public key matching AGE_SECRET_KEY. If not set, the age-keygen tool must be
+#     available so it can be derived from the AGE_SECRET_KEY.
 #
 #   - LITESTREAM_DATABASE_PATH
 #     The full path to the SQlite database to restore/replicate.
@@ -78,7 +78,7 @@ write_config() {
   assert_is_set AWS_REGION
   assert_is_set AWS_ENDPOINT_URL_S3
   assert_is_set BUCKET_NAME
-  assert_is_set AGE_PRIVATE_KEY
+  assert_is_set AGE_SECRET_KEY
   assert_is_set LITESTREAM_DATABASE_PATH
 
   export LITESTREAM_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID"
