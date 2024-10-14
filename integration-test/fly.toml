@@ -11,9 +11,9 @@ swap_size_mb = 128
 
 [deploy]
   # NOTE: We usually recommend the immediate strategy because other deployment strategies require HA
-  #       compatibility, however for integration testing we use canary to make `fly deploy` fail if the
+  #       compatibility, however for integration testing we use rolling to make `fly deploy` fail if the
   #       instance does not come up healthy.
-  strategy = "canary"
+  strategy = "rolling"
 
 [http_service]
   internal_port = 8080
