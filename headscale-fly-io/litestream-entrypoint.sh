@@ -143,7 +143,7 @@ main() {
     info_run litestream restore -if-db-not-exists -if-replica-exists -replica s3 "$LITESTREAM_DATABASE_PATH"
   fi
 
-  if [ "${LITESTREAM_ENABLED:-true}" = "true" ]; then
+  if [ "$LITESTREAM_ENABLED" = "true" ]; then
     info_run exec litestream replicate -exec "$1"
   else
     # shellcheck disable=SC2086
