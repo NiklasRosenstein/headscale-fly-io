@@ -96,6 +96,7 @@ main() {
   write_noise_private_key
   write_config
   maybe_idle
+  export BUCKET_PATH="headscale.db"
   export LITESTREAM_DATABASE_PATH=/var/lib/headscale/db.sqlite
   info_run exec /etc/headscale/litestream-entrypoint.sh "headscale serve"
 }

@@ -78,6 +78,7 @@ write_config() {
   assert_is_set AWS_REGION
   assert_is_set AWS_ENDPOINT_URL_S3
   assert_is_set BUCKET_NAME
+  assert_is_set BUCKET_PATH
   assert_is_set AGE_SECRET_KEY
   assert_is_set LITESTREAM_DATABASE_PATH
 
@@ -92,10 +93,10 @@ dbs:
   replicas:
   # See https://litestream.io/reference/config/#s3-replica
   - type: s3
-    bucket: $BUCKET_NAME
-    path: headscale.db
-    region: $AWS_REGION
-    endpoint: $AWS_ENDPOINT_URL_S3
+    bucket: "$BUCKET_NAME"
+    path: "$BUCKET_PATH"
+    region: "$AWS_REGION"
+    endpoint: '$AWS_ENDPOINT_URL_S3'
     # See https://litestream.io/reference/config/#replica-settings
     sync-interval: "${LITESTREAM_SYNC_INTERVAL:-10s}"
     # See https://litestream.io/reference/config/#encryption
