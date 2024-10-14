@@ -49,13 +49,13 @@ trap 'on_error' EXIT
 write_noise_private_key() {
   # This file must be configured through a secret and mounted via the fly.toml configuration.
   assert_is_set NOISE_PRIVATE_KEY
+  NOISE_PRIVATE_KEY_FILE=/var/lib/headscale/noise_private.key
   info "writing $NOISE_PRIVATE_KEY_FILE"
   echo "$NOISE_PRIVATE_KEY" > /$NOISE_PRIVATE_KEY_FILE
 }
 
 write_config() {
   HEADSCALE_CONFIG_PATH=/etc/headscale/config.yaml
-  NOISE_PRIVATE_KEY_FILE=/var/lib/headscale/noise_private.key
 
   # The HEADSCALE_SERVER_URL variable was removed.
   if [ -n "${HEADSCALE_SERVER_URL:-}" ]; then
