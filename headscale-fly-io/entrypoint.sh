@@ -2,131 +2,83 @@
 
 set -eu
 
-debug() {
-    >&2 echo "[ entrypoint - DEBUG ]" "$@"
-}
+#
+# Utility functions
+#
 
 info() {
-    >&2 echo "[ entrypoint - INFO ]" "$@"
+  >&2 echo "[$0 |  INFO]:" "$@"
 }
 
 error() {
-    >&2 echo "[ entrypoint - ERROR ]" "$@"
+  >&2 echo "[$0 | ERROR]:" "$@"
 }
 
 info_run() {
-    info "$@"
-    "$@"
+  info "$@"
+  "$@"
 }
 
 assert_is_set() {
-    eval "val=\${$1+x}"
-    if [ -z "$val" ]; then
-        error "missing expected environment variable \"$1\""
-        exit 1
-    fi
-}
-
-assert_file_exists() {
-    if [ ! -f "$1" ]; then
-        error "missing expected file \"$1\""
-        exit 1
-    fi
+  eval "val=\${$1+x}"
+  if [ -z "$val" ]; then
+    error "missing expected environment variable \"$1\""
+    exit 1
+  fi
 }
 
 maybe_idle() {
-    if [ "${ENTRYPOINT_IDLE:-false}" = "true" ]; then
-        info "ENTRYPOINT_IDLE=true, entering idle state"
-        sleep infinity
-    fi
+  if [ "${ENTRYPOINT_IDLE:-false}" = "true" ]; then
+    info "ENTRYPOINT_IDLE=true, entering idle state"
+    sleep infinity
+  fi
 }
 
 on_error() {
-    [ $? -eq 0 ] && exit
-    error "an unexpected error occurred."
-    maybe_idle
+  [ $? -eq 0 ] && exit
+  error "an unexpected error occurred."
+  maybe_idle
 }
 
 trap 'on_error' EXIT
 
-HEADSCALE_CONFIG_PATH=/etc/headscale/config.yaml
-HEADSCALE_DB_PATH=/var/lib/headscale/db.sqlite
-NOISE_PRIVATE_KEY_FILE=/var/lib/headscale/noise_private.key
+#
+# Business logic
+#
 
-# This file must be configured through a secret and mounted via the fly.toml configuration.
-# assert_file_exists $NOISE_PRIVATE_KEY_FILE
-assert_is_set NOISE_PRIVATE_KEY
-info "writing $NOISE_PRIVATE_KEY_FILE"
-echo "$NOISE_PRIVATE_KEY" > /$NOISE_PRIVATE_KEY_FILE
+write_noise_private_key() {
+  # This file must be configured through a secret and mounted via the fly.toml configuration.
+  assert_is_set NOISE_PRIVATE_KEY
+  NOISE_PRIVATE_KEY_FILE=/var/lib/headscale/noise_private.key
+  info "writing $NOISE_PRIVATE_KEY_FILE"
+  echo "$NOISE_PRIVATE_KEY" > /$NOISE_PRIVATE_KEY_FILE
+}
 
-# These should be available automatically simply by enabling the Fly.io Tigris object storage extension.
-assert_is_set AWS_ACCESS_KEY_ID
-assert_is_set AWS_SECRET_ACCESS_KEY
-assert_is_set AWS_REGION
-assert_is_set AWS_ENDPOINT_URL_S3
-assert_is_set BUCKET_NAME
-assert_is_set AGE_SECRET_KEY
+write_config() {
+  HEADSCALE_CONFIG_PATH=/etc/headscale/config.yaml
 
-export LITESTREAM_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID"
-export LITESTREAM_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY"
-AGE_PUBLIC_KEY="$(echo "$AGE_SECRET_KEY" | age-keygen -y)"
-
-info "generating /etc/litestream.yml"
-cat <<EOF >/etc/litestream.yml
-dbs:
-- path: /var/lib/headscale/db.sqlite
-  replicas:
-  # See https://litestream.io/reference/config/#s3-replica
-  - type: s3
-    bucket: $BUCKET_NAME
-    path: headscale.db
-    region: $AWS_REGION
-    endpoint: $AWS_ENDPOINT_URL_S3
-    # See https://litestream.io/reference/config/#replica-settings
-    sync-interval: "${LITESTREAM_SYNC_INTERVAL:-10s}"
-    # See https://litestream.io/reference/config/#encryption
-    age:
-      identities:
-      - "$AGE_SECRET_KEY"
-      recipients:
-      - "$AGE_PUBLIC_KEY"
-    # See https://litestream.io/reference/config/#retention-period
-    retention: "${LITESTREAM_RETENTION:-24h}"
-    retention-check-interval: "${LITESTREAM_RETENTION_CHECK_INTERVAL:-1h}"
-    # https://litestream.io/reference/config/#validation-interval
-    validation-interval: "${LITESTREAM_VALIDATION_INTERVAL:-12h}"
-EOF
-
-info "configuring mc"
-mc alias set s3 "$AWS_ENDPOINT_URL_S3" "$AWS_ACCESS_KEY_ID" "$AWS_SECRET_ACCESS_KEY"
-
-if [ "${ENTRYPOINT_DEBUG:-}" = "true" ]; then
-    debug "ENTRYPOINT_DEBUG is set: set -x"
-    set -x
-fi
-
-# The HEADSCALE_SERVER_URL variable was removed.
-if [ -n "${HEADSCALE_SERVER_URL:-}" ]; then
+  # The HEADSCALE_SERVER_URL variable was removed.
+  if [ -n "${HEADSCALE_SERVER_URL:-}" ]; then
     error "HEADSCALE_SERVER_URL is no longer supported, set HEADSCALE_DOMAIN_NAME instead"
     exit 1
-fi
+  fi
 
-# Set default values for configuration variables for use with envsubst.
-export HEADSCALE_DOMAIN_NAME="${HEADSCALE_DOMAIN_NAME:-${FLY_APP_NAME}.fly.dev}"
-export HEADSCALE_DNS_BASE_DOMAIN="${HEADSCALE_DNS_BASE_DOMAIN:-tailnet}"
-export HEADSCALE_LOG_LEVEL="${HEADSCALE_LOG_LEVEL:-info}"
-export HEADSCALE_PREFIXES_V4="${HEADSCALE_PREFIXES_V4:-100.64.0.0/10}"
-export HEADSCALE_PREFIXES_V6="${HEADSCALE_PREFIXES_V6:-fd7a:115c:a1e0::/48}"
-export HEADSCALE_PREFIXES_ALLOCATION="${HEADSCALE_PREFIXES_ALLOCATION:-random}"
-export HEADSCALE_EPHEMERAL_NODE_INACTIVITY_TIMEOUT="${HEADSCALE_EPHEMERAL_NODE_INACTIVITY_TIMEOUT:-30m}"
+  # Set default values for configuration variables for use with envsubst.
+  export HEADSCALE_DOMAIN_NAME="${HEADSCALE_DOMAIN_NAME:-${FLY_APP_NAME}.fly.dev}"
+  export HEADSCALE_DNS_BASE_DOMAIN="${HEADSCALE_DNS_BASE_DOMAIN:-tailnet}"
+  export HEADSCALE_LOG_LEVEL="${HEADSCALE_LOG_LEVEL:-info}"
+  export HEADSCALE_PREFIXES_V4="${HEADSCALE_PREFIXES_V4:-100.64.0.0/10}"
+  export HEADSCALE_PREFIXES_V6="${HEADSCALE_PREFIXES_V6:-fd7a:115c:a1e0::/48}"
+  export HEADSCALE_PREFIXES_ALLOCATION="${HEADSCALE_PREFIXES_ALLOCATION:-random}"
+  export HEADSCALE_EPHEMERAL_NODE_INACTIVITY_TIMEOUT="${HEADSCALE_EPHEMERAL_NODE_INACTIVITY_TIMEOUT:-30m}"
 
-# Generate the Headscale configuration file by substituting environment variables.
-info "generating $HEADSCALE_CONFIG_PATH"
-# shellcheck disable=SC3060
-envsubst < "${HEADSCALE_CONFIG_PATH/.yaml/.template.yaml}" > $HEADSCALE_CONFIG_PATH
+  # Generate the Headscale configuration file by substituting environment variables.
+  info "writing $HEADSCALE_CONFIG_PATH"
+  # shellcheck disable=SC3060
+  envsubst < "${HEADSCALE_CONFIG_PATH/.yaml/.template.yaml}" > $HEADSCALE_CONFIG_PATH
 
-# Append OIDC configuration if enabled.
-if [ -n "${HEADSCALE_OIDC_ISSUER:-}" ]; then
+  # Append OIDC configuration if enabled.
+  if [ -n "${HEADSCALE_OIDC_ISSUER:-}" ]; then
     assert_is_set HEADSCALE_OIDC_CLIENT_ID
     assert_is_set HEADSCALE_OIDC_CLIENT_SECRET
     export HEADSCALE_OIDC_SCOPES="${HEADSCALE_OIDC_SCOPES:-openid, profile, email}"
@@ -137,27 +89,15 @@ if [ -n "${HEADSCALE_OIDC_ISSUER:-}" ]; then
     info "generating OIDC appendix for $HEADSCALE_CONFIG_PATH"
     # shellcheck disable=SC3060
     envsubst < "${HEADSCALE_CONFIG_PATH/.yaml/-oidc.template.yaml}" >> $HEADSCALE_CONFIG_PATH
-fi
+  fi
+}
 
-if [ "${ENTRYPOINT_DEBUG:-}" = "true" ]; then
-    debug "contents of $HEADSCALE_CONFIG_PATH:"
-    cat "$HEADSCALE_CONFIG_PATH"
-    debug "end contents of $HEADSCALE_CONFIG_PATH"
-fi
+main() {
+  write_noise_private_key
+  write_config
+  maybe_idle
+  export LITESTREAM_DATABASE_PATH=/var/lib/headscale/db.sqlite
+  info_run exec /etc/headscale/litestream-entrypoint.sh "headscale serve"
+}
 
-# Check if there is an existing database to import from S3.
-if [ "${IMPORT_DATABASE:-}" = "true" ] && mc find "s3/$BUCKET_NAME/import-db.sqlite" 2> /dev/null > /dev/null; then
-    info "found \"import-db.sqlite\" in bucket, importing that database instead of restoring with litestream"
-    mc cp "s3/$BUCKET_NAME/import-db.sqlite" "$HEADSCALE_DB_PATH"
-elif [ "${LITESTREAM_ENABLED:-true}" = "true" ]; then
-    info_run litestream restore -if-db-not-exists -if-replica-exists -replica s3 "$HEADSCALE_DB_PATH"
-fi
-
-maybe_idle
-
-# Run Headscale.
-if [ "${LITESTREAM_ENABLED:-true}" = "true" ]; then
-    info_run exec litestream replicate -exec "headscale serve"
-else
-    info_run exec headscale serve
-fi
+main "$@"
