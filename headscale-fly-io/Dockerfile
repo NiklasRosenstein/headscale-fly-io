@@ -14,7 +14,7 @@ COPY --from=litestream /litestream /usr/bin/litestream
 COPY --from=minio/mc:RELEASE.2024-10-02T08-27-28Z /usr/bin/mc /usr/bin/mc
 WORKDIR /etc/headscale
 VOLUME /var/lib/headscale
-COPY entrypoint.sh config.template.yaml config-oidc.template.yaml .
+COPY entrypoint.sh litestream-entrypoint.sh config.template.yaml config-oidc.template.yaml .
 RUN addgroup -S headscale && adduser -S headscale -G headscale
 RUN mkdir -p /etc/headscale /var/lib/headscale /var/run/headscale && \
     touch /etc/litestream.yml && \
