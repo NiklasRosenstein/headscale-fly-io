@@ -39,6 +39,7 @@ __Contents__
   * [Environment variables](#environment-variables)
   * [Migrating to Headscale on Fly.io](#migrating-to-headscale-on-flyio)
   * [Migrating from Postgres](#migrating-from-postgres)
+  * [litestream-entrypoint.sh](#litestream-entrypointsh)
 * [Development](#development)
 * [Integration testing](#integration-testing)
 <!-- end toc -->
@@ -283,6 +284,18 @@ S3 bucket. Then re-deploy to remove the `IMPORT_DATABASE` variable.
     $ fly deploy
 
 You should be good to go!
+
+### litestream-entrypoint.sh
+
+As part of this repository, the [`litestream-entrypoint.sh`](./headscale-fly-io/litestream-entrypoint.sh) can be
+considered public API can consumed by other projects that want to use Litestream in the same fashion as this project.
+It can be retrieved with curl or copied from the container published by the project under the
+`/var/lib/headscale/litestream-entrypoint.sh` path, however you must pin a tagged version to ensure reproducability and
+compatibility (newer versions might change in a backwards incompatible way).
+
+Other projects that use this script include:
+
+* [NiklasRosenstein/vaultwarden-on-fly](https://github.com/NiklasRosenstein/vaultwarden-fly-io)
 
 ## Development
 
