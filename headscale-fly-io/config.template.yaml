@@ -31,4 +31,8 @@ derp:
   - https://controlplane.tailscale.com/derpmap/default
 
 dns:
+  magic_dns: ${HEADSCALE_DNS_MAGIC_DNS}
   base_domain: ${HEADSCALE_DNS_BASE_DOMAIN}
+  nameservers:
+    global: [ ${HEADSCALE_DNS_NAMESERVERS_GLOBAL} ]
+  search_domains: [ ${HEADSCALE_DNS_SEARCH_DOMAINS} ]
