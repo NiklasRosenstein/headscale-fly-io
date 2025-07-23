@@ -9,7 +9,7 @@ RUN arch=$(cat /tmp/arch) &&\
 
 FROM alpine
 RUN apk add age envsubst
-COPY --from=ghcr.io/juanfont/headscale:v0.26.0 ko-app/headscale /usr/bin/headscale
+COPY --from=ghcr.io/juanfont/headscale:v0.26.1 ko-app/headscale /usr/bin/headscale
 COPY --from=litestream /litestream /usr/bin/litestream
 COPY --from=minio/mc:RELEASE.2024-10-02T08-27-28Z /usr/bin/mc /usr/bin/mc
 WORKDIR /etc/headscale
