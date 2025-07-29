@@ -1,0 +1,15 @@
+#!/bin/bash
+set -euo pipefail
+
+if [ $# -ne 1 ]; then
+  echo "Usage: $0 <headscale-version>"
+  exit 1
+fi
+
+HEADSCALE_VERSION="$1"
+PROJECT_VERSION=$(cut -d- -f1 <<< "$(git describe --tags --abbrev=0)")
+NEW_TAG="$PROJECT_VERSION-headscale-$HEADSCALE_VERSION"
+
+# Create a release on GitHub
+gh release create "$NEW_TAG" --generate-notes
+git fetch --tags

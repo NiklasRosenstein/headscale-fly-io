@@ -1,6 +1,23 @@
 {
-    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-    "extends": ["config:recommended"],
-    "rebaseWhen": "conflicted",
-    "dependencyDashboardApproval": false
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "rebaseWhen": "conflicted",
+  "automerge": true,
+  "automergeType": "pr",
+  "platformAutomerge": true,
+  "packageRules": [
+    {
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "automerge": true
+    },
+    {
+      "matchPackageNames": ["ghcr.io/juanfont/headscale"],
+      "postUpdateOptions": ["gomodUpdate", "gomodTidy", "shell:./scripts/release-headscale {{newVersion}}"]
+    }
+  ]
 }
