@@ -10,6 +10,11 @@
   "platformAutomerge": true,
   "packageRules": [
     {
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["ghcr.io/juanfont/headscale"],
+      "addLabels": ["headscale-update"]
+    },
+    {
       "matchUpdateTypes": [
         "minor",
         "patch"
