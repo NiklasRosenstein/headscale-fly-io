@@ -1,0 +1,40 @@
+name: Release
+
+on:
+  pull_request:
+    types:
+      - closed
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    if: "github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'headscale-update')"
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get Headscale Version
+        id: get_headscale_version
+        run: |
+          echo "HEADSCALE_VERSION=$(grep 'ghcr.io/juanfont/headscale:v' headscale-fly-io/Dockerfile | cut -d':' -f2)" >> $GITHUB_OUTPUT
+
+      - name: Create and Push Tag
+        id: create_tag
+        run: |
+          # Get previous project version
+          PREVIOUS_PROJECT_VERSION=$(git describe --tags --abbrev=0 | cut -d'-' -f1)
+          NEW_TAG="$PREVIOUS_PROJECT_VERSION-headscale-${{ steps.get_headscale_version.outputs.HEADSCALE_VERSION }}"
+          echo "NEW_TAG=$NEW_TAG" >> $GITHUB_OUTPUT
+          git tag $NEW_TAG
+          git push origin $NEW_TAG
+
+      - name: Create Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./scripts/release ${{ steps.create_tag.outputs.NEW_TAG }}
