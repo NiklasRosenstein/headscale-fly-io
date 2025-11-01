@@ -21,7 +21,7 @@ jobs:
       - name: Get Headscale Version
         id: get_headscale_version
         run: |
-          echo "HEADSCALE_VERSION=$(grep 'ghcr.io/juanfont/headscale:v' headscale-fly-io/Dockerfile | cut -d':' -f2)" >> $GITHUB_OUTPUT
+          echo "HEADSCALE_VERSION=$(grep 'ghcr.io/juanfont/headscale:v' headscale-fly-io/Dockerfile | cut -d':' -f2 | cut -d' ' -f1 | sed 's/^v//')" >> $GITHUB_OUTPUT
 
       - name: Create and Push Tag
         id: create_tag
