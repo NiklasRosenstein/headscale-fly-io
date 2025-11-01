@@ -13,14 +13,16 @@
     {
       "matchDatasources": ["docker"],
       "matchPackageNames": ["ghcr.io/juanfont/headscale"],
-      "addLabels": ["headscale-update"]
+      "addLabels": ["headscale-update"],
+      "dependencyDashboardApproval": false
     },
     {
       "matchUpdateTypes": [
         "minor",
         "patch"
       ],
-      "automerge": true
+      "automerge": true,
+      "dependencyDashboardApproval": false
     }
   ]
 }
