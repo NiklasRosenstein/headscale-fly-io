@@ -5,6 +5,7 @@
   ],
   "rebaseWhen": "conflicted",
   "dependencyDashboardApproval": false,
+  "prCreation": "immediate",
   "automerge": true,
   "automergeType": "pr",
   "platformAutomerge": true,
