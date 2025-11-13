@@ -1,7 +1,7 @@
 oidc:
   allowed_domains: [ ${HEADSCALE_OIDC_ALLOWED_DOMAINS} ]
   allowed_groups: [ ${HEADSCALE_OIDC_ALLOWED_GROUPS} ]
-  allowed_users: [ ${HEADSCALE_OIDC_ALLOWED_USERS} ]
+  allowed_users: [ ${HEADSCALE_OIDC_ALLOWED_USERS_YAML} ]
   client_id: "${HEADSCALE_OIDC_CLIENT_ID}"
   client_secret: "${HEADSCALE_OIDC_CLIENT_SECRET}"
   expiry: "${HEADSCALE_OIDC_EXPIRY}"
