@@ -1,0 +1,34 @@
+# Headplane configuration template
+# Environment variables will be substituted during container startup
+
+headscale:
+  url: http://localhost:8888
+  config_path: /etc/headscale/config.yaml
+  config_strict: true
+
+server:
+  # Headplane will listen on port 3000 and be reverse-proxied by nginx
+  host: 127.0.0.1
+  port: 3000
+  
+  # Base URL - must be the public URL where Headplane is accessible (for OIDC callbacks)
+  base_url: ${HEADPLANE_BASE_URL}
+  
+  # Cookie secret for encrypting session data (must be exactly 32 characters)
+  cookie_secret: ${HEADPLANE_COOKIE_SECRET}
+  
+  # Cookie settings for reverse proxy (set to true since Fly.io handles TLS)
+  cookie_secure: true
+  
+  # Data path for headplane state
+  data_path: /var/lib/headplane
+
+# Integration settings for advanced features
+integration:
+  # Enable process inspection for network management features
+  proc:
+    enabled: ${HEADPLANE_PROC_ENABLED}
+
+# Optional: OIDC Configuration for SSO authentication
+# Uncomment and configure to enable OIDC login
+${HEADPLANE_OIDC_CONFIG}

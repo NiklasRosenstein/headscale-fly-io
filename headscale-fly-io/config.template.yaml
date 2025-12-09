@@ -1,5 +1,5 @@
 server_url: https://${HEADSCALE_DOMAIN_NAME}
-listen_addr: 0.0.0.0:8080
+listen_addr: 0.0.0.0:8888
 metrics_listen_addr: 0.0.0.0:8081
 grpc_listen_addr: 0.0.0.0:50443
 grpc_allow_insecure: true # We use Fly.io's TLS termination.
