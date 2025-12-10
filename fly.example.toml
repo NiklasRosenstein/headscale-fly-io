@@ -13,7 +13,7 @@ swap_size_mb = 128
   strategy = "immediate"
 
 [http_service]
-  internal_port = 8080
+  internal_port = 8888
   force_https = true
   auto_stop_machines = "stop"
   auto_start_machines = true
