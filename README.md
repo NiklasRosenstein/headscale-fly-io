@@ -35,6 +35,9 @@ __Contents__
   - [Advanced configuration and usage](#advanced-configuration-and-usage)
     - [ACLs](#acls)
     - [Configuring OIDC](#configuring-oidc)
+    - [Headplane Web UI](#headplane-web-ui)
+      - [Accessing Headplane](#accessing-headplane)
+      - [Headplane Configuration](#headplane-configuration)
     - [Using a custom domain](#using-a-custom-domain)
     - [Metrics](#metrics)
     - [Environment variables](#environment-variables)
@@ -130,6 +133,71 @@ To enable OIDC, you must at the minimum provide the following environment variab
 Please make sure that you pass the client secret using `fly secrets set` instead of via the `[[env]]` section of
 your `fly.toml` configuration file.
 
+### Headplane Web UI
+
+This deployment includes [Headplane](https://headplane.net/), a full-featured web-based admin interface for Headscale.
+Headplane provides:
+
+- 👥 Single-sign-on integration
+- 🔎 Detailed Tailnet overview and host information
+- 📝 Configure Headscale settings including networking and auth controls
+
+#### Accessing Headplane
+
+Once deployed, access Headplane at `https://<your-domain>/admin` (or `https://<your-app-name>.fly.dev/admin`).
+
+On first access, you'll need a Headscale API key. Generate one with:
+
+```bash
+$ fly ssh console -C "headscale apikeys create --expiration 90d"
+```
+
+Copy the API key and use it to log in to Headplane.
+
+#### Headplane Configuration
+
+Headplane is disabled by default. To enable it, set:
+
+```toml
+[env]
+  HEADPLANE_ENABLED = "true"
+```
+
+**Enabling OIDC for Headplane:**
+
+To enable single sign-on for Headplane, first register the callback URL in your OIDC provider:
+- **Callback URL:** `https://<your-domain>/admin/oidc/callback`
+- Example: `https://tailscale.microcloud.dev/admin/oidc/callback`
+
+Then set the following environment variables:
+
+```bash
+$ fly secrets set HEADPLANE_OIDC_CLIENT_SECRET=<your-client-secret>
+$ fly secrets set HEADPLANE_OIDC_HEADSCALE_API_KEY=$(fly ssh console -C "headscale apikeys create --expiration 999d")
+```
+
+Add to your `fly.toml`:
+
+```toml
+[env]
+  HEADPLANE_OIDC_ISSUER = "https://accounts.google.com"
+  HEADPLANE_OIDC_CLIENT_ID = "your-client-id"
+```
+
+**Note:** For the best experience, use the **same** OIDC client ID for both Headscale and Headplane.
+
+**Logs:**
+
+Both Headscale and Headplane log to stdout/stderr, so all logs are visible in `fly logs`.
+
+**Architecture:**
+
+Headplane runs alongside Headscale in the same container, with nginx routing:
+- `/` → Headscale (API and control plane)
+- `/admin` → Headplane (web UI)
+
+For more information, see the [Headplane documentation](https://headplane.net/).
+
 ### Using a custom domain
 
 1. Create a CNAME entry for your Fly.io application
@@ -169,31 +237,46 @@ __Security variables__
 
 __Headscale configuration variables__
 
-| Variable                                      | Default                                                        | Description                                                                                                                                                                                                                                                                                        |
-| --------------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `HEADSCALE_DOMAIN_NAME`                       | `${FLY_APP_NAME}.fly.dev`                                      | URL of the Headscale server.                                                                                                                                                                                                                                                                       |
-| `HEADSCALE_DNS_BASE_DOMAIN`                   | `tailnet`                                                      | Base domain for members in the Tailnet. This **must not** be a part of the `HEADSCALE_DOMAIN_NAME`.                                                                                                                                                                                                |
-| `HEADSCALE_DNS_MAGIC_DNS`                     | `true`                                                         | Whether to use [MagicDNS](https://tailscale.com/kb/1081/magicdns/).                                                                                                                                                                                                                                |
-| `HEADSCALE_DNS_NAMESERVERS_GLOBAL`            | `1.1.1.1, 1.0.0.1, 2606:4700:4700::1111, 2606:4700:4700::1001` | A comma-separated list of global DNS servers to use. Defaults to Cloudflare DNS servers. To use NextDNS, supply the URL like `https://dns.nextdns.io/abc123`.                                                                                                                                      |
-| `HEADSCALE_DNS_SEARCH_DOMAINS`                | (empty)                                                        | A comma-separated list of search domains. Note that with MagicDNS enabled, tour tailnet base domain is always the first search domain.                                                                                                                                                             |
-| `HEADSCALE_LOG_LEVEL`                         | `info`                                                         | Log level for the Headscale server.                                                                                                                                                                                                                                                                |
-| `HEADSCALE_PREFIXES_V4`                       | `100.64.0.0/10`                                                | Prefix for IP-v4 addresses of nodes in the Tailnet.                                                                                                                                                                                                                                                |
-| `HEADSCALE_PREFIXES_V6`                       | `fd7a:115c:a1e0::/48`                                          | Prefix for IP-v6 addresses of nodes in the Tailnet.                                                                                                                                                                                                                                                |
-| `HEADSCALE_PREFIXES_ALLOCATION`               | `random`                                                       | How IPs are allocated to nodes joining the Tailnet. Can be `random` or `sequential`.                                                                                                                                                                                                               |
-| `HEADSCALE_EPHEMERAL_NODE_INACTIVITY_TIMEOUT` | `30m`                                                          | The time after which an inactive ephemeral node is deleted from the control plane.                                                                                                                                                                                                                 |
-| `HEADSCALE_OIDC_ISSUER`                       | n/a                                                            | If set, enables OIDC configuration. Must be set to the URL of the OIDC issuer. For example, if you use Keycloak, it might look something like `https://mykeycloak.com/realms/main`                                                                                                                 |
-| `HEADSCALE_OIDC_CLIENT_ID`                    | n/a, but required if oidc is enabled                           | The OIDC client ID.                                                                                                                                                                                                                                                                                |
-| `HEADSCALE_OIDC_CLIENT_SECRET`                | n/a, but required if oidc is enabled                           | The OIDC client secret. **Important:** Configure this through `fly secrets set`.                                                                                                                                                                                                                   |
-| `HEADSCALE_OIDC_SCOPES`                       | `openid, profile, email`                                       | A comma-separated list of OpenID scopes. (The comma-separated list must be valid YAML if placed inside `[ ... ]`.)                                                                                                                                                                                 |
-| `HEADSCALE_OIDC_ALLOWED_GROUPS`               | n/a                                                            | A comma-separated list of groups to permit. Note that this requires your OIDC client to be configured with a groups claim mapping. In some cases you may need to prefix the group name with a slash (e.g. `/headscale`). (The comma-separated list must be valid YAML if placed inside `[ ... ]`.) |
-| `HEADSCALE_OIDC_ALLOWED_DOMAINS`              | n/a                                                            | A comma-separated list of email domains to permit. (The comma-separated list must be valid YAML if placed inside `[ ... ]`.)                                                                                                                                                                       |
-| `HEADSCALE_OIDC_ALLOWED_USERS`                | n/a                                                            | A comma-separated list of users to permit. (The comma-separated list must be valid YAML if placed inside `[ ... ]`.)                                                                                                                                                                               |
-
-| `HEADSCALE_OIDC_ALLOWED_USERS_FLY`                   | n/a                                                            | A comma-separated list of users to permit. Take precedence over `HEADSCALE_OIDC_ALLOWED_USERS` (The comma-separated list must be valid YAML if placed inside `[ ... ]`.)                                                                                                                                                                               |
-
+| Variable                                         | Default                                                        | Description                                                                                                                                                                                                                                                                                        |
+| ------------------------------------------------ | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `HEADSCALE_DOMAIN_NAME`                          | `${FLY_APP_NAME}.fly.dev`                                      | URL of the Headscale server.                                                                                                                                                                                                                                                                       |
+| `HEADSCALE_DNS_BASE_DOMAIN`                      | `tailnet`                                                      | Base domain for members in the Tailnet. This **must not** be a part of the `HEADSCALE_DOMAIN_NAME`.                                                                                                                                                                                                |
+| `HEADSCALE_DNS_MAGIC_DNS`                        | `true`                                                         | Whether to use [MagicDNS](https://tailscale.com/kb/1081/magicdns/).                                                                                                                                                                                                                                |
+| `HEADSCALE_DNS_NAMESERVERS_GLOBAL`               | `1.1.1.1, 1.0.0.1, 2606:4700:4700::1111, 2606:4700:4700::1001` | A comma-separated list of global DNS servers to use. Defaults to Cloudflare DNS servers. To use NextDNS, supply the URL like `https://dns.nextdns.io/abc123`.                                                                                                                                      |
+| `HEADSCALE_DNS_SEARCH_DOMAINS`                   | (empty)                                                        | A comma-separated list of search domains. Note that with MagicDNS enabled, tour tailnet base domain is always the first search domain.                                                                                                                                                             |
+| `HEADSCALE_LOG_LEVEL`                            | `info`                                                         | Log level for the Headscale server.                                                                                                                                                                                                                                                                |
+| `HEADSCALE_PREFIXES_V4`                          | `100.64.0.0/10`                                                | Prefix for IP-v4 addresses of nodes in the Tailnet.                                                                                                                                                                                                                                                |
+| `HEADSCALE_PREFIXES_V6`                          | `fd7a:115c:a1e0::/48`                                          | Prefix for IP-v6 addresses of nodes in the Tailnet.                                                                                                                                                                                                                                                |
+| `HEADSCALE_PREFIXES_ALLOCATION`                  | `random`                                                       | How IPs are allocated to nodes joining the Tailnet. Can be `random` or `sequential`.                                                                                                                                                                                                               |
+| `HEADSCALE_EPHEMERAL_NODE_INACTIVITY_TIMEOUT`    | `30m`                                                          | The time after which an inactive ephemeral node is deleted from the control plane.                                                                                                                                                                                                                 |
+| `HEADSCALE_OIDC_ISSUER`                          | n/a                                                            | If set, enables OIDC configuration. Must be set to the URL of the OIDC issuer. For example, if you use Keycloak, it might look something like `https://mykeycloak.com/realms/main`                                                                                                                 |
+| `HEADSCALE_OIDC_CLIENT_ID`                       | n/a, but required if oidc is enabled                           | The OIDC client ID.                                                                                                                                                                                                                                                                                |
+| `HEADSCALE_OIDC_CLIENT_SECRET`                   | n/a, but required if oidc is enabled                           | The OIDC client secret. **Important:** Configure this through `fly secrets set`.                                                                                                                                                                                                                   |
+| `HEADSCALE_OIDC_SCOPES`                          | `openid, profile, email`                                       | A comma-separated list of OpenID scopes. (The comma-separated list must be valid YAML if placed inside `[ ... ]`.)                                                                                                                                                                                 |
+| `HEADSCALE_OIDC_ALLOWED_GROUPS`                  | n/a                                                            | A comma-separated list of groups to permit. Note that this requires your OIDC client to be configured with a groups claim mapping. In some cases you may need to prefix the group name with a slash (e.g. `/headscale`). (The comma-separated list must be valid YAML if placed inside `[ ... ]`.) |
+| `HEADSCALE_OIDC_ALLOWED_DOMAINS`                 | n/a                                                            | A comma-separated list of email domains to permit. (The comma-separated list must be valid YAML if placed inside `[ ... ]`.)                                                                                                                                                                       |
+| `HEADSCALE_OIDC_ALLOWED_USERS`                   | n/a                                                            | A comma-separated list of users to permit. (The comma-separated list must be valid YAML if placed inside `[ ... ]`.)                                                                                                                                                                               |
+| `HEADSCALE_OIDC_ALLOWED_USERS_FLY`               | n/a                                                            | A comma-separated list of users to permit. Takes precedence over `HEADSCALE_OIDC_ALLOWED_USERS` (The comma-separated list must be valid YAML if placed inside `[ ... ]`.)                                                                                                                          |
 | `HEADSCALE_OIDC_EXPIRY`                          | `180d`                                                         | The amount of time from a node is authenticated with OpenID until it expires and needs to reauthenticate. Setting the value to "0" will mean no expiry.                                                                                                                                            |
 | `HEADSCALE_OIDC_USE_EXPIRY_FROM_TOKEN`           | `false`                                                        | Use the expiry from the token received from OpenID when the user logged in, this will typically lead to frequent need to reauthenticate and should only been enabled if you know what you are doing. If enabled, `HEADSCALE_OIDC_EXPIRY` is ignored.                                               |
 | `HEADSCALE_OIDC_ONLY_START_IF_OIDC_IS_AVAILABLE` | `true`                                                         | Fail startup if the OIDC server cannot be reached.                                                                                                                                                                                                                                                 |
+
+__Headplane configuration variables__
+
+| Variable                                    | Default                            | Description                                                                              |
+| ------------------------------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------- |
+| `HEADPLANE_ENABLED`                         | `false`                            | Enable or disable the Headplane web UI.                                                  |
+| `HEADPLANE_BASE_URL`                        | `https://${HEADSCALE_DOMAIN_NAME}` | Public URL where Headplane is accessible (required for OIDC callback URLs)               |
+| `HEADPLANE_COOKIE_SECRET`                   | (auto)                             | Cookie encryption secret (automatically generated if not provided)                       |
+| `HEADPLANE_PROC_ENABLED`                    | `true`                             | Enable process inspection for network management features                                |
+| `HEADPLANE_OIDC_ISSUER`                     | n/a                                | OIDC issuer URL for Headplane SSO (e.g., `https://accounts.google.com`)                  |
+| `HEADPLANE_OIDC_CLIENT_ID`                  | n/a                                | OIDC client ID for Headplane. **Important:** Should match Headscale's OIDC client ID     |
+| `HEADPLANE_OIDC_CLIENT_SECRET`              | n/a                                | OIDC client secret for Headplane. **Important:** Use `fly secrets set`                   |
+| `HEADPLANE_OIDC_HEADSCALE_API_KEY`          | n/a                                | Headscale API key for OIDC flow. **Important:** Use `fly secrets set`                    |
+| `HEADPLANE_OIDC_SCOPE`                      | `openid email profile`             | OIDC scopes to request                                                                   |
+| `HEADPLANE_OIDC_USE_PKCE`                   | `true`                             | Use PKCE for additional security (requires OIDC provider support)                        |
+| `HEADPLANE_OIDC_DISABLE_API_KEY_LOGIN`      | `false`                            | Disable traditional API key login when OIDC is enabled                                   |
+| `HEADPLANE_OIDC_TOKEN_ENDPOINT_AUTH_METHOD` | `client_secret_basic`              | Token endpoint authentication method (e.g., `client_secret_post`, `client_secret_basic`) |
 
 __Litestream configuration variables__
 

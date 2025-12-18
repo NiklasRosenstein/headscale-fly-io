@@ -100,10 +100,86 @@ write_config() {
   fi
 }
 
+write_headplane_config() {
+  HEADPLANE_CONFIG_PATH=/etc/headscale/config-headplane.yaml
+
+  # Generate a cookie secret if not provided (must be exactly 32 characters)
+  if [ -z "${HEADPLANE_COOKIE_SECRET:-}" ]; then
+    info "generating random HEADPLANE_COOKIE_SECRET"
+    export HEADPLANE_COOKIE_SECRET=$(head -c 16 /dev/urandom | od -A n -t x1 | tr -d ' \n')
+  fi
+
+  # Set default values for headplane configuration (envsubst doesn't support :- syntax)
+  export HEADPLANE_PROC_ENABLED="${HEADPLANE_PROC_ENABLED:-true}"
+  
+  # Set the base URL for Headplane (needed for OIDC callback URLs)
+  # Use HEADPLANE_BASE_URL if set, otherwise construct from HEADSCALE_DOMAIN_NAME
+  if [ -z "${HEADPLANE_BASE_URL:-}" ]; then
+    export HEADPLANE_BASE_URL="https://${HEADSCALE_DOMAIN_NAME}"
+  fi
+
+  # Generate OIDC configuration if enabled
+  if [ -n "${HEADPLANE_OIDC_ISSUER:-}" ]; then
+    info "enabling OIDC configuration for Headplane"
+    assert_is_set HEADPLANE_OIDC_CLIENT_ID
+    assert_is_set HEADPLANE_OIDC_CLIENT_SECRET
+    assert_is_set HEADPLANE_OIDC_HEADSCALE_API_KEY
+    
+    export HEADPLANE_OIDC_SCOPE="${HEADPLANE_OIDC_SCOPE:-openid email profile}"
+    export HEADPLANE_OIDC_USE_PKCE="${HEADPLANE_OIDC_USE_PKCE:-true}"
+    export HEADPLANE_OIDC_DISABLE_API_KEY_LOGIN="${HEADPLANE_OIDC_DISABLE_API_KEY_LOGIN:-false}"
+    export HEADPLANE_OIDC_TOKEN_ENDPOINT_AUTH_METHOD="${HEADPLANE_OIDC_TOKEN_ENDPOINT_AUTH_METHOD:-client_secret_basic}"
+    
+    export HEADPLANE_OIDC_CONFIG="oidc:
+  issuer: ${HEADPLANE_OIDC_ISSUER}
+  client_id: ${HEADPLANE_OIDC_CLIENT_ID}
+  client_secret: ${HEADPLANE_OIDC_CLIENT_SECRET}
+  headscale_api_key: ${HEADPLANE_OIDC_HEADSCALE_API_KEY}
+  scope: ${HEADPLANE_OIDC_SCOPE}
+  use_pkce: ${HEADPLANE_OIDC_USE_PKCE}
+  disable_api_key_login: ${HEADPLANE_OIDC_DISABLE_API_KEY_LOGIN}
+  token_endpoint_auth_method: ${HEADPLANE_OIDC_TOKEN_ENDPOINT_AUTH_METHOD}"
+  else
+    export HEADPLANE_OIDC_CONFIG="# oidc: not configured"
+  fi
+
+  # Generate the Headplane configuration file by substituting environment variables.
+  info "writing $HEADPLANE_CONFIG_PATH"
+  # shellcheck disable=SC3060
+  envsubst < "${HEADPLANE_CONFIG_PATH/.yaml/.template.yaml}" > $HEADPLANE_CONFIG_PATH
+}
+
+start_headplane() {
+  # Only start headplane if explicitly enabled
+  if [ "${HEADPLANE_ENABLED:-false}" != "true" ]; then
+    info "HEADPLANE_ENABLED not set to true, skipping headplane startup"
+    return
+  fi
+
+  info "starting headplane in background (logs to stdout/stderr)"
+  cd /opt/headplane
+  HEADPLANE_CONFIG_PATH=/etc/headscale/config-headplane.yaml NODE_PATH=/opt/headplane/node_modules node /opt/headplane/build/server/index.js 2>&1 &
+  HEADPLANE_PID=$!
+  info "headplane started with PID $HEADPLANE_PID"
+}
+
+start_nginx() {
+  info "starting nginx reverse proxy in background"
+  nginx -c /etc/headscale/nginx.conf &
+  NGINX_PID=$!
+  info "nginx started with PID $NGINX_PID"
+}
+
 main() {
   write_noise_private_key
   write_config
+  write_headplane_config
   maybe_idle
+  
+  # Start headplane and nginx before headscale
+  start_headplane
+  start_nginx
+  
   export BUCKET_PATH="headscale.db"
   export LITESTREAM_DATABASE_PATH=/var/lib/headscale/db.sqlite
   info_run exec /etc/headscale/litestream-entrypoint.sh "headscale serve"
