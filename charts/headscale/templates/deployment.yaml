@@ -1,0 +1,248 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "headscale.fullname" . }}
+  labels:
+    {{- include "headscale.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "headscale.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "headscale.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "headscale.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.httpPort }}
+              protocol: TCP
+            - name: grpc
+              containerPort: {{ .Values.service.grpcPort }}
+              protocol: TCP
+            - name: metrics
+              containerPort: {{ .Values.service.metricsPort }}
+              protocol: TCP
+          env:
+            # Domain configuration
+            - name: HEADSCALE_DOMAIN_NAME
+              value: {{ include "headscale.domainName" . | quote }}
+
+            # DNS configuration
+            - name: HEADSCALE_DNS_BASE_DOMAIN
+              value: {{ .Values.headscale.dns.baseDomain | quote }}
+            - name: HEADSCALE_DNS_MAGIC_DNS
+              value: {{ .Values.headscale.dns.magicDns | quote }}
+            - name: HEADSCALE_DNS_NAMESERVERS_GLOBAL
+              value: {{ .Values.headscale.dns.nameserversGlobal | quote }}
+            - name: HEADSCALE_DNS_SEARCH_DOMAINS
+              value: {{ .Values.headscale.dns.searchDomains | quote }}
+
+            # General configuration
+            - name: HEADSCALE_LOG_LEVEL
+              value: {{ .Values.headscale.logLevel | quote }}
+            - name: HEADSCALE_PREFIXES_V4
+              value: {{ .Values.headscale.prefixes.v4 | quote }}
+            - name: HEADSCALE_PREFIXES_V6
+              value: {{ .Values.headscale.prefixes.v6 | quote }}
+            - name: HEADSCALE_PREFIXES_ALLOCATION
+              value: {{ .Values.headscale.prefixes.allocation | quote }}
+            - name: HEADSCALE_EPHEMERAL_NODE_INACTIVITY_TIMEOUT
+              value: {{ .Values.headscale.ephemeralNodeInactivityTimeout | quote }}
+
+            # Noise private key
+            - name: NOISE_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "headscale.secretName" . }}
+                  key: {{ .Values.existingSecretNoisePrivateKeyKey | default "noise-private-key" }}
+
+            {{- if .Values.headscale.oidc.enabled }}
+            # OIDC configuration
+            - name: HEADSCALE_OIDC_ISSUER
+              value: {{ .Values.headscale.oidc.issuer | quote }}
+            - name: HEADSCALE_OIDC_CLIENT_ID
+              value: {{ .Values.headscale.oidc.clientId | quote }}
+            - name: HEADSCALE_OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "headscale.oidc.secretName" . }}
+                  key: oidc-client-secret
+            - name: HEADSCALE_OIDC_SCOPES
+              value: {{ .Values.headscale.oidc.scopes | quote }}
+            - name: HEADSCALE_OIDC_EXPIRY
+              value: {{ .Values.headscale.oidc.expiry | quote }}
+            - name: HEADSCALE_OIDC_USE_EXPIRY_FROM_TOKEN
+              value: {{ .Values.headscale.oidc.useExpiryFromToken | quote }}
+            - name: HEADSCALE_OIDC_ONLY_START_IF_OIDC_IS_AVAILABLE
+              value: {{ .Values.headscale.oidc.onlyStartIfOidcIsAvailable | quote }}
+            {{- if .Values.headscale.oidc.allowedDomains }}
+            - name: HEADSCALE_OIDC_ALLOWED_DOMAINS
+              value: {{ .Values.headscale.oidc.allowedDomains | quote }}
+            {{- end }}
+            {{- if .Values.headscale.oidc.allowedGroups }}
+            - name: HEADSCALE_OIDC_ALLOWED_GROUPS
+              value: {{ .Values.headscale.oidc.allowedGroups | quote }}
+            {{- end }}
+            {{- if .Values.headscale.oidc.allowedUsers }}
+            - name: HEADSCALE_OIDC_ALLOWED_USERS_FLY
+              value: {{ .Values.headscale.oidc.allowedUsers | quote }}
+            {{- end }}
+            {{- end }}
+
+            {{- if .Values.litestream.enabled }}
+            # Litestream configuration
+            - name: LITESTREAM_ENABLED
+              value: "true"
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "headscale.litestream.awsSecretName" . }}
+                  key: {{ .Values.litestream.aws.accessKeyIdKey }}
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "headscale.litestream.awsSecretName" . }}
+                  key: {{ .Values.litestream.aws.secretAccessKeyKey }}
+            - name: AWS_REGION
+              value: {{ .Values.litestream.s3.region | quote }}
+            - name: AWS_ENDPOINT_URL_S3
+              value: {{ .Values.litestream.s3.endpoint | quote }}
+            - name: BUCKET_NAME
+              value: {{ .Values.litestream.s3.bucket | quote }}
+            - name: BUCKET_PATH
+              value: {{ .Values.litestream.s3.path | quote }}
+            - name: AGE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "headscale.secretName" . }}
+                  key: {{ .Values.litestream.existingSecretAgeSecretKeyKey | default "age-secret-key" }}
+            - name: LITESTREAM_RETENTION
+              value: {{ .Values.litestream.retention | quote }}
+            - name: LITESTREAM_SYNC_INTERVAL
+              value: {{ .Values.litestream.syncInterval | quote }}
+            - name: LITESTREAM_RETENTION_CHECK_INTERVAL
+              value: {{ .Values.litestream.retentionCheckInterval | quote }}
+            - name: LITESTREAM_VALIDATION_INTERVAL
+              value: {{ .Values.litestream.validationInterval | quote }}
+            {{- if .Values.litestream.importDatabase }}
+            - name: IMPORT_DATABASE
+              value: {{ .Values.litestream.importDatabase | quote }}
+            {{- end }}
+            {{- else }}
+            - name: LITESTREAM_ENABLED
+              value: "false"
+            {{- end }}
+
+            {{- if .Values.debug.entrypointIdle }}
+            # Debug: sleep on error
+            - name: ENTRYPOINT_IDLE
+              value: "true"
+            {{- end }}
+            {{- if .Values.headplane.enabled }}
+            # Headplane configuration
+            - name: HEADPLANE_ENABLED
+              value: "true"
+            - name: HEADPLANE_BASE_URL
+              value: {{ include "headscale.headplane.baseUrl" . | quote }}
+            - name: HEADPLANE_COOKIE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "headscale.secretName" . }}
+                  key: {{ .Values.headplane.existingSecretCookieSecretKey | default "headplane-cookie-secret" }}
+            - name: HEADPLANE_COOKIE_SECURE
+              value: {{ .Values.headplane.cookieSecure | quote }}
+            - name: HEADPLANE_PROC_ENABLED
+              value: {{ .Values.headplane.procEnabled | quote }}
+            {{- if .Values.headplane.oidc.enabled }}
+            # Headplane OIDC configuration
+            - name: HEADPLANE_OIDC_ISSUER
+              value: {{ .Values.headplane.oidc.issuer | quote }}
+            - name: HEADPLANE_OIDC_CLIENT_ID
+              value: {{ .Values.headplane.oidc.clientId | quote }}
+            - name: HEADPLANE_OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "headscale.headplane.oidc.secretName" . }}
+                  key: headplane-oidc-client-secret
+            - name: HEADPLANE_OIDC_HEADSCALE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "headscale.headplane.oidc.secretName" . }}
+                  key: headplane-oidc-headscale-api-key
+            - name: HEADPLANE_OIDC_SCOPE
+              value: {{ .Values.headplane.oidc.scope | quote }}
+            - name: HEADPLANE_OIDC_USE_PKCE
+              value: {{ .Values.headplane.oidc.usePkce | quote }}
+            - name: HEADPLANE_OIDC_DISABLE_API_KEY_LOGIN
+              value: {{ .Values.headplane.oidc.disableApiKeyLogin | quote }}
+            - name: HEADPLANE_OIDC_TOKEN_ENDPOINT_AUTH_METHOD
+              value: {{ .Values.headplane.oidc.tokenEndpointAuthMethod | quote }}
+            {{- end }}
+            {{- end }}
+          {{- if .Values.probes.liveness.enabled }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.liveness.failureThreshold }}
+          {{- end }}
+          {{- if .Values.probes.readiness.enabled }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.readiness.failureThreshold }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/headscale
+      volumes:
+        - name: data
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "headscale.pvcName" . }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
