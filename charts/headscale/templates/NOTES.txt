@@ -1,0 +1,70 @@
+1. Headscale has been deployed successfully!
+
+{{- $domainName := include "headscale.domainName" . }}
+
+   Domain: https://{{ $domainName }}
+
+2. To connect a Tailscale client to your Headscale server:
+
+   tailscale up --login-server https://{{ $domainName }}
+
+3. To access the Headscale CLI:
+
+   kubectl exec -it -n {{ .Release.Namespace }} \
+     $(kubectl get pods -n {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "headscale.name" . }}" -o jsonpath="{.items[0].metadata.name}") \
+     -- headscale --help
+
+4. Create a user:
+
+   kubectl exec -it -n {{ .Release.Namespace }} \
+     $(kubectl get pods -n {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "headscale.name" . }}" -o jsonpath="{.items[0].metadata.name}") \
+     -- headscale users create myuser
+
+{{- if .Values.ingress.enabled }}
+
+5. Ingress is enabled. Make sure your DNS is configured to point to your ingress controller.
+   {{- range .Values.ingress.hosts }}
+   - {{ .host }}
+   {{- end }}
+{{- end }}
+
+{{- if .Values.gatewayApi.enabled }}
+
+5. Gateway API is enabled. Ensure your Gateway resource is configured and DNS points to it.
+   {{- range .Values.gatewayApi.httpRoute.hostnames }}
+   - {{ . }}
+   {{- end }}
+{{- end }}
+
+{{- if .Values.serviceMonitor.enabled }}
+
+6. ServiceMonitor is enabled. Prometheus will scrape metrics from port {{ .Values.service.metricsPort }}.
+{{- end }}
+
+{{- if .Values.litestream.enabled }}
+
+NOTE: Litestream is enabled for database replication to S3.
+      Your database will be automatically backed up and restored from:
+      s3://{{ .Values.litestream.s3.bucket }}/{{ .Values.litestream.s3.path }}
+{{- else }}
+
+WARNING: Litestream is disabled. Your database is stored locally in the PVC.
+         Consider enabling Litestream for backup/restore functionality:
+         
+         litestream:
+           enabled: true
+           s3:
+             bucket: "your-bucket"
+             endpoint: "https://s3.amazonaws.com"
+             region: "us-east-1"
+{{- end }}
+
+{{- if not .Values.headscale.domainName }}
+
+WARNING: No domain name configured. The chart has inferred: {{ $domainName }}
+         For production, explicitly set headscale.domainName in your values.
+{{- end }}
+
+For more information, visit:
+- Headscale documentation: https://headscale.net/
+- This chart's repository: https://github.com/niklasrosenstein/headscale-fly-io

@@ -1,0 +1,110 @@
+# Example configuration with Headplane web UI enabled
+# This configuration shows how to deploy Headscale with the Headplane web interface
+
+image:
+  repository: ghcr.io/niklasrosenstein/headscale-fly-io
+  tag: "0.6.0-headscale-0.27.1"  # Use a version that includes Headplane
+
+headscale:
+  domainName: "vpn.example.com"
+  
+  dns:
+    baseDomain: "tailnet"
+    magicDns: true
+    nameserversGlobal: "1.1.1.1, 1.0.0.1"
+  
+  logLevel: "info"
+  
+  # Optional: Enable OIDC for Headscale node registration
+  oidc:
+    enabled: false
+    issuer: "https://auth.example.com/realms/main"
+    clientId: "headscale"
+    existingSecret: "headscale-oidc"
+
+# Enable Headplane web interface
+headplane:
+  enabled: true
+  
+  # The base URL will be auto-detected from headscale.domainName
+  # Headplane will be accessible at https://vpn.example.com/admin
+  
+  # Cookie settings
+  cookieSecure: true  # Set to true when using HTTPS (recommended)
+  procEnabled: true   # Enable process inspection features
+  
+  # Optional: Enable OIDC for Headplane authentication
+  oidc:
+    enabled: false
+    issuer: "https://auth.example.com/realms/main"
+    clientId: "headplane"
+    # Store credentials in a secret
+    existingSecret: "headplane-oidc"
+    # The secret should contain:
+    # - headplane-oidc-client-secret: Your OIDC client secret
+    # - headplane-oidc-headscale-api-key: A valid Headscale API key
+    
+    scope: "openid email profile"
+    usePkce: true
+    disableApiKeyLogin: false
+    tokenEndpointAuthMethod: "client_secret_basic"
+
+# Use existing secret for noise private key and headplane cookie secret
+# existingSecret: "headscale-secrets"
+# The secret should contain:
+# - noise-private-key: Your Headscale noise private key
+# - headplane-cookie-secret: 32-character secret for cookie encryption
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: "nginx"
+  
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # Increase body size for uploads through Headplane
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+  
+  hosts:
+    - host: vpn.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  
+  tls:
+    - secretName: headscale-tls
+      hosts:
+        - vpn.example.com
+  
+  # Optional: Separate ingress for gRPC (CLI access)
+  grpc:
+    enabled: true
+    annotations:
+      nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+
+# Persistence
+persistence:
+  enabled: true
+  storageClassName: ""  # Use default storage class
+  size: 2Gi
+
+# Resources
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi  # Increased for Headplane
+  requests:
+    cpu: 100m
+    memory: 256Mi  # Increased for Headplane
+
+# Optional: Litestream for SQLite backups
+litestream:
+  enabled: false
+  s3:
+    bucket: "my-headscale-backup"
+    endpoint: "https://s3.amazonaws.com"
+    region: "us-east-1"
+  # aws:
+  #   existingSecret: "headscale-s3-credentials"

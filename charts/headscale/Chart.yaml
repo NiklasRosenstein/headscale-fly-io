@@ -1,0 +1,33 @@
+apiVersion: v2
+name: headscale
+description: |
+  A Helm chart for deploying Headscale (self-hosted Tailscale control server)
+  on Kubernetes. Originally designed for Fly.io, this chart provides equivalent
+  functionality with support for both Ingress and Gateway API.
+
+type: application
+version: 0.1.0
+appVersion: "0.27.1"
+
+keywords:
+  - headscale
+  - tailscale
+  - vpn
+  - wireguard
+  - mesh-network
+
+home: https://github.com/niklasrosenstein/headscale-fly-io
+sources:
+  - https://github.com/niklasrosenstein/headscale-fly-io
+  - https://github.com/juanfont/headscale
+
+maintainers:
+  - name: headscale-fly-io contributors
+
+annotations:
+  artifacthub.io/license: MIT
+  artifacthub.io/links: |
+    - name: Headscale Documentation
+      url: https://headscale.net/
+    - name: Tailscale
+      url: https://tailscale.com/

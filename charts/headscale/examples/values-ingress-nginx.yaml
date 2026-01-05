@@ -1,0 +1,71 @@
+# Example values for deploying Headscale with Nginx Ingress
+# This is a minimal production-ready configuration
+
+headscale:
+  # REQUIRED: Set your domain name
+  domainName: "vpn.example.com"
+
+  dns:
+    baseDomain: "tailnet"
+    magicDns: true
+
+  # Optional: Enable OIDC for authentication
+  # oidc:
+  #   enabled: true
+  #   issuer: "https://auth.example.com/realms/main"
+  #   clientId: "headscale"
+  #   existingSecret: "headscale-oidc"
+
+# Persistence is required for the SQLite database
+persistence:
+  enabled: true
+  size: 1Gi
+  # storageClassName: "standard"  # Uncomment and set your storage class
+
+# Enable Ingress with Nginx
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    # Enable cert-manager for automatic TLS
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    # Recommended nginx settings
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+  hosts:
+    - host: vpn.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: headscale-tls
+      hosts:
+        - vpn.example.com
+
+  # Enable separate gRPC ingress for CLI access
+  grpc:
+    enabled: true
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    tls:
+      - secretName: headscale-grpc-tls
+        hosts:
+          - vpn.example.com
+
+# Optional: Enable Prometheus monitoring
+serviceMonitor:
+  enabled: false
+  # interval: 30s
+
+# Optional: Resource limits
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
