@@ -97,12 +97,15 @@ there, or use the Headscale CLI locally to remotely control it. For this, you mu
 by connecting via SSH and running `headscale apikeys create`.
 
 Then, locally, make sure you have the same version of the Headscale CLI installed that is running on your Fly.io app
-and follow [as documented](https://headscale.net/ref/remote-cli/?h=api#download-and-configure-headscale). We use the
-same typical gRPC port (`50443`).
+and follow [as documented](https://headscale.net/ref/remote-cli/?h=api#download-and-configure-headscale).
 
-    $ export HEADSCALE_CLI_ADDRESS=${FLY_APP_NAME}.fly.dev:50443
+The gRPC endpoint is exposed at the `/headscale.` path. Connect to port 443 (Fly.io's TLS termination):
+
+    $ export HEADSCALE_CLI_ADDRESS=${FLY_APP_NAME}.fly.dev:443
     $ export HEADSCALE_CLI_API_KEY=...
     $ headscale node list
+
+**Note:** Fly.io handles TLS termination on port 443 and forwards traffic to nginx on port 8080 with HTTP/2 enabled. Nginx then proxies the gRPC traffic to the local headscale instance on port 50443.
 
 ## Updates
 
@@ -195,6 +198,9 @@ Both Headscale and Headplane log to stdout/stderr, so all logs are visible in `f
 Headplane runs alongside Headscale in the same container, with nginx routing:
 - `/` → Headscale (API and control plane)
 - `/admin` → Headplane (web UI)
+- `/headscale.*` → Headscale gRPC endpoint (for remote CLI access)
+
+Fly.io handles TLS termination on port 443 and forwards traffic to nginx on port 8080 with HTTP/2. Nginx then acts as a reverse proxy to the internal services.
 
 For more information, see the [Headplane documentation](https://headplane.net/).
 
