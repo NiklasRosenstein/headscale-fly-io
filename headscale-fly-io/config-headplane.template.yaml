@@ -20,7 +20,8 @@ server:
   # Cookie settings for reverse proxy (set to true since Fly.io handles TLS)
   cookie_secure: true
   
-  # Data path for headplane state
+  # Data path for headplane state (database file will be at {data_path}/hp_persist.db)
+  # Used for backup/restore with litestream
   data_path: /var/lib/headplane
 
 # Integration settings for advanced features

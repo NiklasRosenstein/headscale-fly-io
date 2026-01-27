@@ -166,6 +166,8 @@ Headplane is disabled by default. To enable it, set:
   HEADPLANE_ENABLED = "true"
 ```
 
+**Database Backup:** When Headplane is enabled, its database (`hp_persist.db`) is automatically backed up and restored by Litestream alongside the Headscale database. No additional configuration is needed.
+
 **Enabling OIDC for Headplane:**
 
 To enable single sign-on for Headplane, first register the callback URL in your OIDC provider:
@@ -288,11 +290,11 @@ __Litestream configuration variables__
 
 | Variable                              | Default | Description                                                                                                                                                                                     |
 | ------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `LITESTREAM_ENABLED`                  | `true`  | Whether to restore and replicate the SQlite database with Litestream. You likely never want to turn this option off, as you will loose your SQlite database on restarts.                        |
-| `LITESTREAM_RETENTION`                | `24h`   | Configure the Litestream retention period. Retention is enforced periodically and can be changed with `LITESTREAM_RETENTION_CHECK_INTERVAL`.                                                    |
+| `LITESTREAM_ENABLED`                  | `true`  | Whether to restore and replicate the SQLite databases with Litestream (both Headscale and Headplane if enabled). You likely never want to turn this option off, as you will loose your databases on restarts.                        |
+| `LITESTREAM_RETENTION`                | `24h`   | Configure the Litestream retention period. Retention is enforced periodically and can be changed with `LITESTREAM_RETENTION_CHECK_INTERVAL`. Applies to all databases.                                                    |
 | `LITESTREAM_RETENTION_CHECK_INTERVAL` | `1h`    | The interval at which retention should be applied.                                                                                                                                              |
-| `LITESTREAM_VALIDATION_INTERVAL`      | `12h`   | The interval at which Litestream does a separate restore of the database and validates the result vs. the current database.                                                                     |
-| `LITESTREAM_SYNC_INTERVAL`            | `10s`   | Frequency in which frames are pushed to the replica. Note that Litestream's typical default is `1s`, and increasing this frequency can increase storage costs due to higher API request counts. |
+| `LITESTREAM_VALIDATION_INTERVAL`      | `12h`   | The interval at which Litestream does a separate restore of the databases and validates the result vs. the current databases.                                                                     |
+| `LITESTREAM_SYNC_INTERVAL`            | `10s`   | Frequency in which frames are pushed to the replicas. Note that Litestream's typical default is `1s`, and increasing this frequency can increase storage costs due to higher API request counts. |
 
 __Maintenance variables__
 
