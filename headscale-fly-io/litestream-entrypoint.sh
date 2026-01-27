@@ -111,6 +111,29 @@ dbs:
     # https://litestream.io/reference/config/#validation-interval
     validation-interval: "${LITESTREAM_VALIDATION_INTERVAL:-12h}"
 EOF
+
+  # Add headplane database configuration if enabled
+  if [ "${HEADPLANE_ENABLED:-false}" = "true" ]; then
+    info "adding headplane database to litestream configuration"
+    cat <<EOF >>/etc/litestream.yml
+- path: "/var/lib/headplane/hp_persist.db"
+  replicas:
+  - type: s3
+    bucket: "$BUCKET_NAME"
+    path: "headplane.db"
+    region: "$AWS_REGION"
+    endpoint: '$AWS_ENDPOINT_URL_S3'
+    sync-interval: "${LITESTREAM_SYNC_INTERVAL:-10s}"
+    age:
+      identities:
+      - "$AGE_SECRET_KEY"
+      recipients:
+      - "$AGE_PUBLIC_KEY"
+    retention: "${LITESTREAM_RETENTION:-24h}"
+    retention-check-interval: "${LITESTREAM_RETENTION_CHECK_INTERVAL:-1h}"
+    validation-interval: "${LITESTREAM_VALIDATION_INTERVAL:-12h}"
+EOF
+  fi
 }
 
 maybe_import_database() {
@@ -142,6 +165,11 @@ main() {
   write_config
   if ! maybe_import_database && [ "$LITESTREAM_ENABLED" = "true" ]; then
     info_run litestream restore -if-db-not-exists -if-replica-exists -replica s3 "$LITESTREAM_DATABASE_PATH"
+
+    # Restore headplane database if enabled
+    if [ "${HEADPLANE_ENABLED:-false}" = "true" ]; then
+      info_run litestream restore -if-db-not-exists -if-replica-exists -replica s3 "/var/lib/headplane/hp_persist.db"
+    fi
   fi
 
   if [ "$LITESTREAM_ENABLED" = "true" ]; then
