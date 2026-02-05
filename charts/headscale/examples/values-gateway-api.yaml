@@ -1,0 +1,101 @@
+# Example values for deploying Headscale with Gateway API
+# Requires a Gateway API implementation (e.g., Envoy Gateway, Istio, Cilium)
+
+headscale:
+  # REQUIRED: Set your domain name
+  domainName: "vpn.example.com"
+
+  dns:
+    baseDomain: "tailnet"
+    magicDns: true
+
+# Persistence is required for the SQLite database
+persistence:
+  enabled: true
+  size: 1Gi
+
+# Disable traditional Ingress
+ingress:
+  enabled: false
+
+# Enable Gateway API
+gatewayApi:
+  enabled: true
+
+  # HTTPRoute for web traffic
+  httpRoute:
+    parentRefs:
+      # Reference to your Gateway resource
+      - name: main-gateway
+        namespace: gateway-system  # Namespace where your Gateway is deployed
+        sectionName: https         # The listener name on the Gateway
+    hostnames:
+      - vpn.example.com
+
+  # GRPCRoute for CLI access (optional)
+  # Requires Gateway API v1 with GRPCRoute support
+  grpcRoute:
+    enabled: true
+    parentRefs:
+      - name: main-gateway
+        namespace: gateway-system
+        sectionName: grpc  # Requires a separate gRPC listener on the Gateway
+
+  # TLSRoute for raw TLS passthrough (rarely needed)
+  tlsRoute:
+    enabled: false
+
+# Use cert-manager for TLS certificates
+certificate:
+  enabled: true
+  secretName: headscale-tls
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  # DNS names will be auto-populated from gatewayApi.httpRoute.hostnames
+
+# Optional: Enable Prometheus monitoring
+serviceMonitor:
+  enabled: false
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+# ---
+# Example Gateway resource (deploy separately):
+#
+# apiVersion: gateway.networking.k8s.io/v1
+# kind: Gateway
+# metadata:
+#   name: main-gateway
+#   namespace: gateway-system
+# spec:
+#   gatewayClassName: envoy  # or istio, cilium, etc.
+#   listeners:
+#     - name: https
+#       protocol: HTTPS
+#       port: 443
+#       tls:
+#         mode: Terminate
+#         certificateRefs:
+#           - name: headscale-tls
+#             namespace: headscale
+#       allowedRoutes:
+#         namespaces:
+#           from: All
+#     - name: grpc
+#       protocol: HTTPS
+#       port: 50443
+#       tls:
+#         mode: Terminate
+#         certificateRefs:
+#           - name: headscale-tls
+#             namespace: headscale
+#       allowedRoutes:
+#         namespaces:
+#           from: All

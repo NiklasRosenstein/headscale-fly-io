@@ -1,0 +1,221 @@
+# Full production example with all features enabled
+# This mirrors the Fly.io deployment with all enterprise features
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/niklasrosenstein/headscale-fly-io
+  pullPolicy: IfNotPresent
+  # tag: "0.2.3-headscale-0.27.1"
+
+headscale:
+  domainName: "vpn.company.com"
+
+  dns:
+    baseDomain: "company.tailnet"
+    magicDns: true
+    nameserversGlobal: "1.1.1.1, 1.0.0.1"
+    searchDomains: "internal.company.com"
+
+  logLevel: "info"
+
+  prefixes:
+    v4: "100.64.0.0/10"
+    v6: "fd7a:115c:a1e0::/48"
+    allocation: "random"
+
+  ephemeralNodeInactivityTimeout: "30m"
+
+  # OIDC authentication
+  oidc:
+    enabled: true
+    issuer: "https://sso.company.com/realms/main"
+    clientId: "headscale"
+    existingSecret: "headscale-oidc"
+    scopes: "openid, profile, email"
+    expiry: "180d"
+    useExpiryFromToken: false
+    onlyStartIfOidcIsAvailable: true
+    allowedDomains: "company.com"
+    # allowedGroups: "vpn-users"
+    # allowedUsers: ""
+
+# Existing secrets (create these before deploying)
+existingSecret: "headscale-credentials"
+existingSecretNoisePrivateKeyKey: "noise-private-key"
+
+# Headplane web interface for management
+headplane:
+  enabled: true
+  oidc:
+    enabled: true
+    issuer: "https://sso.company.com/realms/main"
+    clientId: "headplane"
+    existingSecret: "headplane-oidc"
+    scope: "openid email profile"
+    usePkce: true
+    disableApiKeyLogin: false
+
+# Litestream for database backup/restore
+litestream:
+  enabled: true
+  s3:
+    bucket: "company-headscale-backup"
+    endpoint: "https://s3.eu-west-1.amazonaws.com"
+    region: "eu-west-1"
+    path: "headscale.db"
+  aws:
+    existingSecret: "headscale-s3-credentials"
+    accessKeyIdKey: "aws-access-key-id"
+    secretAccessKeyKey: "aws-secret-access-key"
+  existingSecretAgeSecretKeyKey: "age-secret-key"
+  retention: "168h"  # 7 days
+  syncInterval: "10s"
+  retentionCheckInterval: "1h"
+  validationInterval: "12h"
+
+service:
+  type: ClusterIP
+  httpPort: 8080
+  grpcPort: 50443
+  metricsPort: 8081
+
+# Separate gRPC service for load balancer scenarios
+grpcService:
+  enabled: false
+
+# Using Ingress (set to false if using Gateway API)
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/connection-proxy-header: "keep-alive"
+  hosts:
+    - host: vpn.company.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: headscale-tls
+      hosts:
+        - vpn.company.com
+  grpc:
+    enabled: true
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    tls:
+      - secretName: headscale-grpc-tls
+        hosts:
+          - vpn.company.com
+
+# Alternative: Use Gateway API instead of Ingress
+gatewayApi:
+  enabled: false
+  # httpRoute:
+  #   parentRefs:
+  #     - name: main-gateway
+  #       namespace: gateway-system
+  #       sectionName: https
+  #   hostnames:
+  #     - vpn.company.com
+  # grpcRoute:
+  #   enabled: true
+  #   parentRefs:
+  #     - name: main-gateway
+  #       namespace: gateway-system
+  #       sectionName: grpc
+
+# cert-manager Certificate (if not using ingress annotations)
+certificate:
+  enabled: false
+  # issuerRef:
+  #   name: letsencrypt-prod
+  #   kind: ClusterIssuer
+  # secretName: headscale-tls
+
+persistence:
+  enabled: true
+  storageClassName: "fast-ssd"  # Use your preferred storage class
+  accessMode: ReadWriteOnce
+  size: 5Gi
+  annotations:
+    backup.velero.io/backup-volumes: "data"
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+nodeSelector: {}
+  # kubernetes.io/arch: amd64
+
+tolerations: []
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: headscale
+          topologyKey: kubernetes.io/hostname
+
+probes:
+  liveness:
+    enabled: true
+    initialDelaySeconds: 10
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readiness:
+    enabled: true
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+# Prometheus ServiceMonitor
+serviceMonitor:
+  enabled: true
+  namespace: monitoring  # Where Prometheus is installed
+  labels:
+    release: prometheus  # Match your Prometheus selector
+  interval: 30s
+  scrapeTimeout: 10s
+
+# Network isolation
+networkPolicy:
+  enabled: true
+  ingress: []
+  egress: []
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8081"
+  prometheus.io/path: "/metrics"
+
+podSecurityContext:
+  fsGroup: 1000
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  readOnlyRootFilesystem: false
+
+serviceAccount:
+  create: true
+  annotations: {}
+    # eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/headscale-role
+  name: ""
