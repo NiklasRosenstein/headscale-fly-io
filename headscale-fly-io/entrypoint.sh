@@ -111,7 +111,7 @@ write_headplane_config() {
 
   # Set default values for headplane configuration (envsubst doesn't support :- syntax)
   export HEADPLANE_PROC_ENABLED="${HEADPLANE_PROC_ENABLED:-true}"
-  
+
   # Set the base URL for Headplane (needed for OIDC callback URLs)
   # Use HEADPLANE_BASE_URL if set, otherwise construct from HEADSCALE_DOMAIN_NAME
   if [ -z "${HEADPLANE_BASE_URL:-}" ]; then
@@ -124,12 +124,12 @@ write_headplane_config() {
     assert_is_set HEADPLANE_OIDC_CLIENT_ID
     assert_is_set HEADPLANE_OIDC_CLIENT_SECRET
     assert_is_set HEADPLANE_OIDC_HEADSCALE_API_KEY
-    
+
     export HEADPLANE_OIDC_SCOPE="${HEADPLANE_OIDC_SCOPE:-openid email profile}"
     export HEADPLANE_OIDC_USE_PKCE="${HEADPLANE_OIDC_USE_PKCE:-true}"
     export HEADPLANE_OIDC_DISABLE_API_KEY_LOGIN="${HEADPLANE_OIDC_DISABLE_API_KEY_LOGIN:-false}"
     export HEADPLANE_OIDC_TOKEN_ENDPOINT_AUTH_METHOD="${HEADPLANE_OIDC_TOKEN_ENDPOINT_AUTH_METHOD:-client_secret_basic}"
-    
+
     export HEADPLANE_OIDC_CONFIG="oidc:
   issuer: ${HEADPLANE_OIDC_ISSUER}
   client_id: ${HEADPLANE_OIDC_CLIENT_ID}
@@ -147,6 +147,42 @@ write_headplane_config() {
   info "writing $HEADPLANE_CONFIG_PATH"
   # shellcheck disable=SC3060
   envsubst < "${HEADPLANE_CONFIG_PATH/.yaml/.template.yaml}" > $HEADPLANE_CONFIG_PATH
+}
+
+write_litestream_append_config() {
+  LITESTREAM_ENABLED="${LITESTREAM_ENABLED:-true}"
+  if [ "$LITESTREAM_ENABLED" != "true" ]; then
+    info "LITESTREAM_ENABLED=false, skipping Litestream append config"
+    return
+  fi
+
+  if [ "${HEADPLANE_ENABLED:-false}" != "true" ]; then
+    return
+  fi
+
+  assert_is_set AWS_ACCESS_KEY_ID
+  assert_is_set AWS_SECRET_ACCESS_KEY
+  assert_is_set AWS_REGION
+  assert_is_set AWS_ENDPOINT_URL_S3
+  assert_is_set BUCKET_NAME
+  assert_is_set AGE_SECRET_KEY
+
+  if [ -z "${AGE_PUBLIC_KEY:-}" ]; then
+    info "deriving AGE_PUBLIC_KEY"
+    AGE_PUBLIC_KEY="$(echo "$AGE_SECRET_KEY" | age-keygen -y)"
+    export AGE_PUBLIC_KEY
+  fi
+
+  # Export Litestream config variables with defaults for envsubst
+  export LITESTREAM_SYNC_INTERVAL="${LITESTREAM_SYNC_INTERVAL:-10s}"
+  export LITESTREAM_RETENTION="${LITESTREAM_RETENTION:-24h}"
+  export LITESTREAM_RETENTION_CHECK_INTERVAL="${LITESTREAM_RETENTION_CHECK_INTERVAL:-1h}"
+  export LITESTREAM_VALIDATION_INTERVAL="${LITESTREAM_VALIDATION_INTERVAL:-12h}"
+
+  export LITESTREAM_APPEND_CONFIG_PATH=/etc/headscale/litestream-append.yml
+  info "writing $LITESTREAM_APPEND_CONFIG_PATH"
+  # shellcheck disable=SC3060
+  envsubst < /etc/headscale/litestream-headplane.template.yaml > $LITESTREAM_APPEND_CONFIG_PATH
 }
 
 start_headplane() {
@@ -174,12 +210,13 @@ main() {
   write_noise_private_key
   write_config
   write_headplane_config
+  write_litestream_append_config
   maybe_idle
-  
+
   # Start headplane and nginx before headscale
   start_headplane
   start_nginx
-  
+
   export BUCKET_PATH="headscale.db"
   export LITESTREAM_DATABASE_PATH=/var/lib/headscale/db.sqlite
   info_run exec /etc/headscale/litestream-entrypoint.sh "headscale serve"

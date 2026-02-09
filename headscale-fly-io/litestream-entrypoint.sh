@@ -39,6 +39,9 @@
 #     downloaded and placed in the LITESTREAM_DATABASE_PATH instead of restoring it with Litestream on startup.
 #     Replication will continue as usual. Should be unset once the import is complete.
 #
+#   - LITESTREAM_APPEND_CONFIG_PATH [optional]
+#     If set, this file is appended to /etc/litestream.yml after the base config is written.
+#
 # usage: litestream-entrypoint.sh <exec_command>
 
 set -eu
@@ -111,29 +114,6 @@ dbs:
     # https://litestream.io/reference/config/#validation-interval
     validation-interval: "${LITESTREAM_VALIDATION_INTERVAL:-12h}"
 EOF
-
-  # Add headplane database configuration if enabled
-  if [ "${HEADPLANE_ENABLED:-false}" = "true" ]; then
-    info "adding headplane database to litestream configuration"
-    cat <<EOF >>/etc/litestream.yml
-- path: "/var/lib/headplane/hp_persist.db"
-  replicas:
-  - type: s3
-    bucket: "$BUCKET_NAME"
-    path: "headplane.db"
-    region: "$AWS_REGION"
-    endpoint: '$AWS_ENDPOINT_URL_S3'
-    sync-interval: "${LITESTREAM_SYNC_INTERVAL:-10s}"
-    age:
-      identities:
-      - "$AGE_SECRET_KEY"
-      recipients:
-      - "$AGE_PUBLIC_KEY"
-    retention: "${LITESTREAM_RETENTION:-24h}"
-    retention-check-interval: "${LITESTREAM_RETENTION_CHECK_INTERVAL:-1h}"
-    validation-interval: "${LITESTREAM_VALIDATION_INTERVAL:-12h}"
-EOF
-  fi
 }
 
 maybe_import_database() {
@@ -161,15 +141,18 @@ maybe_import_database() {
 }
 
 main() {
-  LITESTREAM_ENABLED="${LITESTREAM_ACCESS_KEY_ID:-true}"
+  LITESTREAM_ENABLED="${LITESTREAM_ENABLED:-true}"
   write_config
+  if [ -n "${LITESTREAM_APPEND_CONFIG_PATH:-}" ]; then
+    if [ ! -f "$LITESTREAM_APPEND_CONFIG_PATH" ]; then
+      error "append config not found: $LITESTREAM_APPEND_CONFIG_PATH"
+      exit 1
+    fi
+    info "appending $LITESTREAM_APPEND_CONFIG_PATH to /etc/litestream.yml"
+    cat "$LITESTREAM_APPEND_CONFIG_PATH" >>/etc/litestream.yml
+  fi
   if ! maybe_import_database && [ "$LITESTREAM_ENABLED" = "true" ]; then
     info_run litestream restore -if-db-not-exists -if-replica-exists -replica s3 "$LITESTREAM_DATABASE_PATH"
-
-    # Restore headplane database if enabled
-    if [ "${HEADPLANE_ENABLED:-false}" = "true" ]; then
-      info_run litestream restore -if-db-not-exists -if-replica-exists -replica s3 "/var/lib/headplane/hp_persist.db"
-    fi
   fi
 
   if [ "$LITESTREAM_ENABLED" = "true" ]; then

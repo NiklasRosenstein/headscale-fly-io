@@ -1,0 +1,16 @@
+- path: "/var/lib/headplane/hp_persist.db"
+  replicas:
+  - type: s3
+    bucket: "${BUCKET_NAME}"
+    path: "headplane.db"
+    region: "${AWS_REGION}"
+    endpoint: "${AWS_ENDPOINT_URL_S3}"
+    sync-interval: "${LITESTREAM_SYNC_INTERVAL}"
+    age:
+      identities:
+      - "${AGE_SECRET_KEY}"
+      recipients:
+      - "${AGE_PUBLIC_KEY}"
+      retention: "${LITESTREAM_RETENTION}"
+      retention-check-interval: "${LITESTREAM_RETENTION_CHECK_INTERVAL}"
+      validation-interval: "${LITESTREAM_VALIDATION_INTERVAL}"
