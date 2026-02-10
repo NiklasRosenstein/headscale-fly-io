@@ -11,6 +11,6 @@
       - "${AGE_SECRET_KEY}"
       recipients:
       - "${AGE_PUBLIC_KEY}"
-      retention: "${LITESTREAM_RETENTION}"
-      retention-check-interval: "${LITESTREAM_RETENTION_CHECK_INTERVAL}"
-      validation-interval: "${LITESTREAM_VALIDATION_INTERVAL}"
+    retention: "${LITESTREAM_RETENTION}"
+    retention-check-interval: "${LITESTREAM_RETENTION_CHECK_INTERVAL}"
+    validation-interval: "${LITESTREAM_VALIDATION_INTERVAL}"

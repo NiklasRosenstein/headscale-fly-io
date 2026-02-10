@@ -111,7 +111,7 @@ write_headplane_config() {
 
   # Set default values for headplane configuration (envsubst doesn't support :- syntax)
   export HEADPLANE_PROC_ENABLED="${HEADPLANE_PROC_ENABLED:-true}"
-
+  
   # Set the base URL for Headplane (needed for OIDC callback URLs)
   # Use HEADPLANE_BASE_URL if set, otherwise construct from HEADSCALE_DOMAIN_NAME
   if [ -z "${HEADPLANE_BASE_URL:-}" ]; then
@@ -124,12 +124,12 @@ write_headplane_config() {
     assert_is_set HEADPLANE_OIDC_CLIENT_ID
     assert_is_set HEADPLANE_OIDC_CLIENT_SECRET
     assert_is_set HEADPLANE_OIDC_HEADSCALE_API_KEY
-
+    
     export HEADPLANE_OIDC_SCOPE="${HEADPLANE_OIDC_SCOPE:-openid email profile}"
     export HEADPLANE_OIDC_USE_PKCE="${HEADPLANE_OIDC_USE_PKCE:-true}"
     export HEADPLANE_OIDC_DISABLE_API_KEY_LOGIN="${HEADPLANE_OIDC_DISABLE_API_KEY_LOGIN:-false}"
     export HEADPLANE_OIDC_TOKEN_ENDPOINT_AUTH_METHOD="${HEADPLANE_OIDC_TOKEN_ENDPOINT_AUTH_METHOD:-client_secret_basic}"
-
+    
     export HEADPLANE_OIDC_CONFIG="oidc:
   issuer: ${HEADPLANE_OIDC_ISSUER}
   client_id: ${HEADPLANE_OIDC_CLIENT_ID}
@@ -212,11 +212,11 @@ main() {
   write_headplane_config
   write_litestream_append_config
   maybe_idle
-
+  
   # Start headplane and nginx before headscale
   start_headplane
   start_nginx
-
+  
   export BUCKET_PATH="headscale.db"
   export LITESTREAM_DATABASE_PATH=/var/lib/headscale/db.sqlite
   info_run exec /etc/headscale/litestream-entrypoint.sh "headscale serve"
