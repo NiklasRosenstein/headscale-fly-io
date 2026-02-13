@@ -39,9 +39,6 @@
 #     downloaded and placed in the LITESTREAM_DATABASE_PATH instead of restoring it with Litestream on startup.
 #     Replication will continue as usual. Should be unset once the import is complete.
 #
-#   - LITESTREAM_APPEND_CONFIG_PATH [optional]
-#     If set, this file is appended to /etc/litestream.yml after the base config is written.
-#
 # usage: litestream-entrypoint.sh <exec_command>
 
 set -eu
@@ -76,6 +73,12 @@ assert_is_set() {
 #
 
 write_config() {
+  # Skip if config already exists (pre-created and merged by entrypoint.sh)
+  if [ -s /etc/litestream.yml ]; then
+    info "litestream custom config already exists, skipping write_config"
+    return
+  fi
+
   assert_is_set AWS_ACCESS_KEY_ID
   assert_is_set AWS_SECRET_ACCESS_KEY
   assert_is_set AWS_REGION
@@ -143,14 +146,6 @@ maybe_import_database() {
 main() {
   LITESTREAM_ENABLED="${LITESTREAM_ENABLED:-true}"
   write_config
-  if [ -n "${LITESTREAM_APPEND_CONFIG_PATH:-}" ]; then
-    if [ ! -f "$LITESTREAM_APPEND_CONFIG_PATH" ]; then
-      error "append config not found: $LITESTREAM_APPEND_CONFIG_PATH"
-      exit 1
-    fi
-    info "appending $LITESTREAM_APPEND_CONFIG_PATH to /etc/litestream.yml"
-    cat "$LITESTREAM_APPEND_CONFIG_PATH" >>/etc/litestream.yml
-  fi
   if ! maybe_import_database && [ "$LITESTREAM_ENABLED" = "true" ]; then
     info_run litestream restore -if-db-not-exists -if-replica-exists -replica s3 "$LITESTREAM_DATABASE_PATH"
   fi
