@@ -5,9 +5,101 @@ on:
     branches: ["main"]
     tags: ["*"]
   pull_request:
+  pull_request_review:
+    types: [submitted]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to test (requires maintainer approval; supports forks)"
+        required: false
+        type: string
 
 jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      checkout_ref: ${{ steps.resolve.outputs.checkout_ref }}
+      deploy_allowed: ${{ steps.resolve.outputs.deploy_allowed }}
+    steps:
+      - name: Resolve ref and deployment eligibility
+        id: resolve
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const maintainerAssoc = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
+
+            async function maintainerApprovedForHead(prNumber, headSha) {
+              const reviews = await github.paginate(github.rest.pulls.listReviews, {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+                per_page: 100,
+              });
+              const latestByUser = new Map();
+              for (const review of reviews) {
+                if (!maintainerAssoc.has(review.author_association)) continue;
+                const login = review.user?.login;
+                if (!login) continue;
+                const previous = latestByUser.get(login);
+                if (!previous || new Date(review.submitted_at || 0) > new Date(previous.submitted_at || 0)) {
+                  latestByUser.set(login, review);
+                }
+              }
+              for (const review of latestByUser.values()) {
+                if (review.state === "APPROVED" && review.commit_id === headSha) {
+                  return true;
+                }
+              }
+              return false;
+            }
+
+            let checkoutRef = context.sha;
+            let deployAllowed = false;
+
+            if (context.eventName === "push") {
+              deployAllowed = true;
+            } else if (context.eventName === "pull_request") {
+              checkoutRef = context.payload.pull_request.head.sha;
+            } else if (context.eventName === "pull_request_review") {
+              const pr = context.payload.pull_request;
+              checkoutRef = pr.head.sha;
+              if (context.payload.review.state === "approved" && maintainerAssoc.has(context.payload.review.author_association)) {
+                deployAllowed = await maintainerApprovedForHead(pr.number, pr.head.sha);
+              }
+            } else if (context.eventName === "workflow_dispatch") {
+              const prInput = (context.payload.inputs?.pr_number || "").trim();
+              if (!prInput) {
+                deployAllowed = true;
+              } else {
+                const prNumber = Number(prInput);
+                if (!Number.isInteger(prNumber) || prNumber <= 0) {
+                  core.setFailed(`Invalid pr_number input: ${prInput}`);
+                  return;
+                }
+                const pr = (await github.rest.pulls.get({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: prNumber,
+                })).data;
+                checkoutRef = pr.head.sha;
+                deployAllowed = await maintainerApprovedForHead(prNumber, pr.head.sha);
+                if (!deployAllowed) {
+                  core.setFailed(`PR #${prNumber} does not have maintainer approval for HEAD ${pr.head.sha}`);
+                  return;
+                }
+              }
+            }
+
+            core.info(`Resolved checkout_ref=${checkoutRef} deploy_allowed=${deployAllowed}`);
+            core.setOutput("checkout_ref", checkoutRef);
+            core.setOutput("deploy_allowed", deployAllowed ? "true" : "false");
+
   docker:
+    needs: prepare
+    if: ${{ github.event_name != 'pull_request_review' || (github.event.review.state == 'approved' && contains('OWNER,MEMBER,COLLABORATOR', github.event.review.author_association)) }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -16,6 +108,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.prepare.outputs.checkout_ref }}
 
       - name: Docker meta
         id: meta
@@ -57,15 +151,26 @@ jobs:
           cache-to: type=gha,mode=max
 
   deployment:
-    if: ${{ github.event_name != 'pull_request' }}
-    needs: docker
+    if: ${{ needs.prepare.outputs.deploy_allowed == 'true' }}
+    needs: [prepare, docker]
     runs-on: ubuntu-latest
+    concurrency:
+      group: integration-test-deployment
+      cancel-in-progress: false
+    env:
+      FLY_APP: headscale-fly-io-integration
+      HEADSCALE_URL: https://headscale-fly-io-integration.fly.dev
+      HEALTH_URL: https://headscale-fly-io-integration.fly.dev/health
+      READINESS_TIMEOUT_SECONDS: "300"
+      POLL_INTERVAL_SECONDS: "5"
     environment:
       name: integration-test
       url: https://headscale-fly-io-integration.fly.dev
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.prepare.outputs.checkout_ref }}
       - name: Get short sha
         id: vars
         run: echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
@@ -74,6 +179,97 @@ jobs:
       - name: Update fly.toml
         run: sed -i "s/\$VERSION/sha-${{ steps.vars.outputs.short_sha }}/" integration-test/fly.toml
       - name: Deploy
-        run: cd integration-test && /home/runner/.fly/bin/flyctl deploy --ha=false && /home/runner/.fly/bin/flyctl status
+        run: |
+          set -euo pipefail
+          cd integration-test
+          /home/runner/.fly/bin/flyctl deploy --ha=false --wait-timeout=5m
+          /home/runner/.fly/bin/flyctl status --app "$FLY_APP"
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      - name: Wait for external health
+        run: |
+          set -euo pipefail
+          deadline=$((SECONDS + READINESS_TIMEOUT_SECONDS))
+          while [ "$SECONDS" -lt "$deadline" ]; do
+            if curl --fail --silent --show-error --max-time 5 "$HEALTH_URL" >/dev/null; then
+              exit 0
+            fi
+            sleep "$POLL_INTERVAL_SECONDS"
+          done
+          echo "Timed out waiting for $HEALTH_URL after ${READINESS_TIMEOUT_SECONDS}s"
+          exit 1
+      - name: Install Tailscale
+        run: curl -fsSL https://tailscale.com/install.sh | sudo sh
+      - name: Create ephemeral auth key
+        run: |
+          set -euo pipefail
+          ts_hostname="ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          echo "TS_HOSTNAME=$ts_hostname" >> "$GITHUB_ENV"
+          ssh_output=$(/home/runner/.fly/bin/flyctl ssh console --app "$FLY_APP" -C "headscale users create ci-integration >/dev/null 2>&1 || true; headscale preauthkeys create --user ci-integration --expiration 10m --reusable=false -o json")
+          ts_authkey=$(printf '%s\n' "$ssh_output" | sed -n 's/.*"key"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)
+          if [ -z "$ts_authkey" ]; then
+            echo "Failed to parse auth key from headscale output"
+            echo "$ssh_output"
+            exit 1
+          fi
+          echo "::add-mask::$ts_authkey"
+          echo "TS_AUTHKEY=$ts_authkey" >> "$GITHUB_ENV"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      - name: Join tailnet
+        run: |
+          set -euo pipefail
+          ts_socket="$RUNNER_TEMP/tailscaled.sock"
+          ts_state="$RUNNER_TEMP/tailscaled.state"
+          tailscaled_bin="$(command -v tailscaled || true)"
+          tailscale_bin="$(command -v tailscale || true)"
+          if [ -z "$tailscaled_bin" ] && [ -x /usr/sbin/tailscaled ]; then
+            tailscaled_bin=/usr/sbin/tailscaled
+          fi
+          if [ -z "$tailscale_bin" ] && [ -x /usr/bin/tailscale ]; then
+            tailscale_bin=/usr/bin/tailscale
+          fi
+          if [ -z "$tailscaled_bin" ] || [ -z "$tailscale_bin" ]; then
+            echo "tailscale binaries not found"
+            exit 1
+          fi
+          "$tailscaled_bin" --tun=userspace-networking --state="$ts_state" --socket="$ts_socket" >"$RUNNER_TEMP/tailscaled.log" 2>&1 &
+          echo "$!" > "$RUNNER_TEMP/tailscaled.pid"
+          for _ in $(seq 1 30); do
+            if "$tailscale_bin" --socket="$ts_socket" status >/dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
+          "$tailscale_bin" --socket="$ts_socket" up \
+            --login-server "$HEADSCALE_URL" \
+            --authkey "$TS_AUTHKEY" \
+            --hostname "$TS_HOSTNAME" \
+            --accept-dns=false \
+            --reset
+          "$tailscale_bin" --socket="$ts_socket" status --json > "$RUNNER_TEMP/tailscale-status.json"
+          grep '"BackendState":"Running"' "$RUNNER_TEMP/tailscale-status.json" >/dev/null
+      - name: Verify node registration
+        run: |
+          set -euo pipefail
+          nodes=$(/home/runner/.fly/bin/flyctl ssh console --app "$FLY_APP" -C "headscale nodes list -o json")
+          printf '%s\n' "$nodes"
+          printf '%s\n' "$nodes" | grep -F "\"$TS_HOSTNAME\"" >/dev/null
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      - name: Diagnostics on failure
+        if: failure()
+        run: |
+          set +e
+          /home/runner/.fly/bin/flyctl status --app "$FLY_APP"
+          /home/runner/.fly/bin/flyctl logs --app "$FLY_APP" --no-tail | tail -n 200
+          test -f "$RUNNER_TEMP/tailscaled.log" && tail -n 200 "$RUNNER_TEMP/tailscaled.log"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      - name: Cleanup
+        if: always()
+        run: |
+          set +e
+          if [ -f "$RUNNER_TEMP/tailscaled.pid" ]; then
+            kill "$(cat "$RUNNER_TEMP/tailscaled.pid")" >/dev/null 2>&1 || true
+          fi
