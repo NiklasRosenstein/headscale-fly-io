@@ -7,6 +7,8 @@ on:
   pull_request:
   pull_request_review:
     types: [submitted]
+  issue_comment:
+    types: [created]
   workflow_dispatch:
     inputs:
       pr_number:
@@ -22,6 +24,7 @@ jobs:
       pull-requests: read
     outputs:
       checkout_ref: ${{ steps.resolve.outputs.checkout_ref }}
+      build_allowed: ${{ steps.resolve.outputs.build_allowed }}
       deploy_allowed: ${{ steps.resolve.outputs.deploy_allowed }}
     steps:
       - name: Resolve ref and deployment eligibility
@@ -56,21 +59,44 @@ jobs:
               return false;
             }
 
-            let checkoutRef = context.sha;
+            let checkoutRef = "";
+            let buildAllowed = false;
             let deployAllowed = false;
 
             if (context.eventName === "push") {
+              checkoutRef = context.sha;
+              buildAllowed = true;
               deployAllowed = true;
             } else if (context.eventName === "pull_request") {
               checkoutRef = context.payload.pull_request.head.sha;
+              buildAllowed = true;
             } else if (context.eventName === "pull_request_review") {
               const pr = context.payload.pull_request;
               checkoutRef = pr.head.sha;
               if (context.payload.review.state === "approved" && maintainerAssoc.has(context.payload.review.author_association)) {
+                buildAllowed = true;
                 deployAllowed = await maintainerApprovedForHead(pr.number, pr.head.sha);
+              }
+            } else if (context.eventName === "issue_comment") {
+              const issue = context.payload.issue;
+              const comment = context.payload.comment;
+              const isSlashCommand = (comment.body || "").trim() === "/integration-test-run";
+              const isMaintainer = maintainerAssoc.has(comment.author_association);
+              const isPullRequestComment = Boolean(issue.pull_request);
+              if (isPullRequestComment && isSlashCommand && isMaintainer) {
+                const pr = (await github.rest.pulls.get({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: issue.number,
+                })).data;
+                checkoutRef = pr.head.sha;
+                buildAllowed = true;
+                deployAllowed = true;
               }
             } else if (context.eventName === "workflow_dispatch") {
               const prInput = (context.payload.inputs?.pr_number || "").trim();
+              checkoutRef = context.sha;
+              buildAllowed = true;
               if (!prInput) {
                 deployAllowed = true;
               } else {
@@ -93,13 +119,14 @@ jobs:
               }
             }
 
-            core.info(`Resolved checkout_ref=${checkoutRef} deploy_allowed=${deployAllowed}`);
+            core.info(`Resolved checkout_ref=${checkoutRef} build_allowed=${buildAllowed} deploy_allowed=${deployAllowed}`);
             core.setOutput("checkout_ref", checkoutRef);
+            core.setOutput("build_allowed", buildAllowed ? "true" : "false");
             core.setOutput("deploy_allowed", deployAllowed ? "true" : "false");
 
   docker:
     needs: prepare
-    if: ${{ github.event_name != 'pull_request_review' || (github.event.review.state == 'approved' && contains('OWNER,MEMBER,COLLABORATOR', github.event.review.author_association)) }}
+    if: ${{ needs.prepare.outputs.build_allowed == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
