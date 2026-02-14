@@ -41,6 +41,8 @@ jobs:
                 pull_number: prNumber,
                 per_page: 100,
               });
+              // Keep only each maintainer's latest review state, since newer reviews
+              // (e.g., CHANGES_REQUESTED) should supersede earlier approvals.
               const latestByUser = new Map();
               for (const review of reviews) {
                 if (!maintainerAssoc.has(review.author_association)) continue;
@@ -51,6 +53,7 @@ jobs:
                   latestByUser.set(login, review);
                 }
               }
+              // Approval is valid only if it explicitly targets the current PR head SHA.
               for (const review of latestByUser.values()) {
                 if (review.state === "APPROVED" && review.commit_id === headSha) {
                   return true;
@@ -74,8 +77,9 @@ jobs:
               const pr = context.payload.pull_request;
               checkoutRef = pr.head.sha;
               if (context.payload.review.state === "approved" && maintainerAssoc.has(context.payload.review.author_association)) {
-                buildAllowed = true;
-                deployAllowed = await maintainerApprovedForHead(pr.number, pr.head.sha);
+                const approvedForHead = await maintainerApprovedForHead(pr.number, pr.head.sha);
+                buildAllowed = approvedForHead;
+                deployAllowed = approvedForHead;
               }
             } else if (context.eventName === "issue_comment") {
               const issue = context.payload.issue;
@@ -233,7 +237,7 @@ jobs:
           ts_hostname="ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           echo "TS_HOSTNAME=$ts_hostname" >> "$GITHUB_ENV"
           ssh_output=$(/home/runner/.fly/bin/flyctl ssh console --app "$FLY_APP" -C "headscale users create ci-integration >/dev/null 2>&1 || true; headscale preauthkeys create --user ci-integration --expiration 10m --reusable=false -o json")
-          ts_authkey=$(printf '%s\n' "$ssh_output" | sed -n 's/.*"key"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)
+          ts_authkey=$(printf '%s\n' "$ssh_output" | jq -r '.key // empty')
           if [ -z "$ts_authkey" ]; then
             echo "Failed to parse auth key from headscale output"
             echo "$ssh_output"
@@ -268,6 +272,10 @@ jobs:
             fi
             sleep 1
           done
+          if ! "$tailscale_bin" --socket="$ts_socket" status >/dev/null 2>&1; then
+            echo "tailscaled did not become ready within the expected time"
+            exit 1
+          fi
           "$tailscale_bin" --socket="$ts_socket" up \
             --login-server "$HEADSCALE_URL" \
             --authkey "$TS_AUTHKEY" \
@@ -275,7 +283,7 @@ jobs:
             --accept-dns=false \
             --reset
           "$tailscale_bin" --socket="$ts_socket" status --json > "$RUNNER_TEMP/tailscale-status.json"
-          grep '"BackendState":"Running"' "$RUNNER_TEMP/tailscale-status.json" >/dev/null
+          jq -e '.BackendState == "Running"' "$RUNNER_TEMP/tailscale-status.json" >/dev/null
       - name: Verify node registration
         run: |
           set -euo pipefail
@@ -298,5 +306,17 @@ jobs:
         run: |
           set +e
           if [ -f "$RUNNER_TEMP/tailscaled.pid" ]; then
-            kill "$(cat "$RUNNER_TEMP/tailscaled.pid")" >/dev/null 2>&1 || true
+            pid="$(cat "$RUNNER_TEMP/tailscaled.pid")"
+            if [ -n "$pid" ]; then
+              kill "$pid" >/dev/null 2>&1 || true
+              for _ in $(seq 1 10); do
+                if ! kill -0 "$pid" >/dev/null 2>&1; then
+                  break
+                fi
+                sleep 1
+              done
+              if kill -0 "$pid" >/dev/null 2>&1; then
+                kill -9 "$pid" >/dev/null 2>&1 || true
+              fi
+            fi
           fi
