@@ -170,6 +170,72 @@ start_nginx() {
   info "nginx started with PID $NGINX_PID"
 }
 
+restore_databases() {
+  LITESTREAM_ENABLED="${LITESTREAM_ENABLED:-true}"
+  if [ "$LITESTREAM_ENABLED" != "true" ]; then
+    info "LITESTREAM_ENABLED=false, skipping database restoration"
+    return
+  fi
+  
+  if [ -n "${IMPORT_DATABASE:-}" ]; then
+    info "IMPORT_DATABASE is set, skipping restoration"
+    return
+  fi
+ 
+  assert_is_set AWS_ACCESS_KEY_ID
+  assert_is_set AWS_SECRET_ACCESS_KEY
+  assert_is_set AWS_REGION
+  assert_is_set AWS_ENDPOINT_URL_S3
+  assert_is_set BUCKET_NAME
+  assert_is_set AGE_SECRET_KEY
+  
+  # Set Litestream config defaults
+  export LITESTREAM_SYNC_INTERVAL="${LITESTREAM_SYNC_INTERVAL:-10s}"
+  export LITESTREAM_RETENTION="${LITESTREAM_RETENTION:-24h}"
+  export LITESTREAM_RETENTION_CHECK_INTERVAL="${LITESTREAM_RETENTION_CHECK_INTERVAL:-1h}"
+  export LITESTREAM_VALIDATION_INTERVAL="${LITESTREAM_VALIDATION_INTERVAL:-12h}"
+  
+  # Derive AGE_PUBLIC_KEY
+  export AGE_PUBLIC_KEY="$(echo "$AGE_SECRET_KEY" | age-keygen -y)"
+  
+  # Write complete litestream config (base + Headplane if enabled)
+  info "writing /etc/litestream.yml"
+  cat <<EOF >/etc/litestream.yml
+dbs:
+- path: "/var/lib/headscale/db.sqlite"
+  replicas:
+  - type: s3
+    bucket: "${BUCKET_NAME}"
+    path: "headscale.db"
+    region: "${AWS_REGION}"
+    endpoint: '${AWS_ENDPOINT_URL_S3}'
+    sync-interval: "${LITESTREAM_SYNC_INTERVAL}"
+    age:
+      identities:
+      - "${AGE_SECRET_KEY}"
+      recipients:
+      - "${AGE_PUBLIC_KEY}"
+    retention: "${LITESTREAM_RETENTION}"
+    retention-check-interval: "${LITESTREAM_RETENTION_CHECK_INTERVAL}"
+    validation-interval: "${LITESTREAM_VALIDATION_INTERVAL}"
+EOF
+
+  # Add Headplane database config if enabled
+  if [ "${HEADPLANE_ENABLED:-false}" = "true" ]; then
+    info "adding Headplane database to litestream config"
+    # shellcheck disable=SC3060
+    envsubst < /etc/headscale/litestream-headplane.template.yaml >> /etc/litestream.yml
+  fi
+  
+  # Restore databases
+  info "restoring databases from S3"
+  info_run litestream restore -if-db-not-exists -if-replica-exists "/var/lib/headscale/db.sqlite"
+
+  if [ "${HEADPLANE_ENABLED:-false}" = "true" ]; then
+    info_run litestream restore -if-db-not-exists -if-replica-exists "/var/lib/headplane/hp_persist.db"
+  fi
+}
+
 write_nginx_config() {
   NGINX_CONFIG_PATH=/etc/headscale/nginx.conf
   export DEPLOY_VERSION="${DEPLOY_VERSION:-unknown}"
@@ -183,6 +249,7 @@ main() {
   write_noise_private_key
   write_config
   write_headplane_config
+  restore_databases
   write_nginx_config
   maybe_idle
   
