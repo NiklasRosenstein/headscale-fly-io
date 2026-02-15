@@ -11,6 +11,7 @@ swap_size_mb = 128
 
 [env]
   DEPLOY_VERSION = "$VERSION"
+  HEADPLANE_ENABLED = "true"
 
 [deploy]
   # NOTE: We usually recommend the immediate strategy because other deployment strategies require HA
