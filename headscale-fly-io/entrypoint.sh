@@ -173,9 +173,10 @@ start_nginx() {
 write_nginx_config() {
   NGINX_CONFIG_PATH=/etc/headscale/nginx.conf
   export DEPLOY_VERSION="${DEPLOY_VERSION:-unknown}"
+  export HEADPLANE_ENABLED="${HEADPLANE_ENABLED:-false}"
   info "writing $NGINX_CONFIG_PATH"
   # shellcheck disable=SC3060
-  envsubst '${DEPLOY_VERSION}' < "${NGINX_CONFIG_PATH/.conf/.template.conf}" > "$NGINX_CONFIG_PATH"
+  envsubst '${DEPLOY_VERSION} ${HEADPLANE_ENABLED}' < "${NGINX_CONFIG_PATH/.conf/.template.conf}" > "$NGINX_CONFIG_PATH"
 }
 
 main() {
