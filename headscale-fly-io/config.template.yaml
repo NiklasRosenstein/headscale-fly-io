@@ -27,6 +27,8 @@ prefixes:
   allocation: ${HEADSCALE_PREFIXES_ALLOCATION}
 
 derp:
+  server:
+    enabled: false
   urls:
   - https://controlplane.tailscale.com/derpmap/default
 
