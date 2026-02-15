@@ -23,7 +23,7 @@ jobs:
       actions: read
       contents: read
       issues: write
-      pull-requests: read
+      pull-requests: write
     outputs:
       checkout_ref: ${{ steps.resolve.outputs.checkout_ref }}
       checkout_short_sha: ${{ steps.resolve.outputs.checkout_short_sha }}
@@ -150,17 +150,22 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const runId = process.env.GITHUB_RUN_ID;
-            const runUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${runId}`;
-            const marker = "<!-- integration-test-run-link -->";
-            const body = `${marker}\nIntegration test run started by /integration-test-run: [workflow run #${runId}](${runUrl}).`;
-            const created = await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: Number("${{ steps.resolve.outputs.pr_number }}"),
-              body,
-            });
-            core.setOutput("status_comment_id", String(created.data.id));
+            try {
+              const runId = process.env.GITHUB_RUN_ID;
+              const runUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${runId}`;
+              const marker = "<!-- integration-test-run-link -->";
+              const body = `${marker}\nIntegration test run started by /integration-test-run: [workflow run #${runId}](${runUrl}).`;
+              const created = await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: Number("${{ steps.resolve.outputs.pr_number }}"),
+                body,
+              });
+              core.setOutput("status_comment_id", String(created.data.id));
+            } catch (err) {
+              core.warning(`Unable to create status comment: ${err.message}`);
+              core.setOutput("status_comment_id", "");
+            }
 
   docker:
     needs: prepare
@@ -224,6 +229,7 @@ jobs:
       contents: read
       deployments: write
       issues: write
+      pull-requests: write
     concurrency:
       group: integration-test-deployment
       cancel-in-progress: false
@@ -246,40 +252,44 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const commentId = Number("${{ needs.prepare.outputs.status_comment_id }}");
-            const runId = process.env.GITHUB_RUN_ID;
-            const runUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${runId}`;
-            let deploymentJobUrl = runUrl;
             try {
-              const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {
+              const commentId = Number("${{ needs.prepare.outputs.status_comment_id }}");
+              const runId = process.env.GITHUB_RUN_ID;
+              const runUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${runId}`;
+              let deploymentJobUrl = runUrl;
+              try {
+                const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  run_id: Number(runId),
+                  per_page: 100,
+                });
+                const deploymentJob = jobs.find((job) => job.name === "deployment");
+                if (deploymentJob?.html_url) deploymentJobUrl = deploymentJob.html_url;
+              } catch (err) {
+                core.info(`Could not resolve deployment job URL yet: ${err.message}`);
+              }
+
+              const marker = "<!-- integration-test-run-link -->";
+              const linkLine = `${marker}\nIntegration test run started by /integration-test-run: [deployment job](${deploymentJobUrl}) (run [#${runId}](${runUrl})).`;
+              const current = await github.rest.issues.getComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                run_id: Number(runId),
-                per_page: 100,
+                comment_id: commentId,
               });
-              const deploymentJob = jobs.find((job) => job.name === "deployment");
-              if (deploymentJob?.html_url) deploymentJobUrl = deploymentJob.html_url;
+              const currentBody = current.data.body || "";
+              const nextBody = currentBody.includes(marker)
+                ? currentBody.replace(new RegExp(`${marker}[\\s\\S]*$`), linkLine)
+                : `${currentBody}\n\n${linkLine}`;
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: commentId,
+                body: nextBody,
+              });
             } catch (err) {
-              core.info(`Could not resolve deployment job URL yet: ${err.message}`);
+              core.warning(`Unable to update status comment: ${err.message}`);
             }
-
-            const marker = "<!-- integration-test-run-link -->";
-            const linkLine = `${marker}\nIntegration test run started by /integration-test-run: [deployment job](${deploymentJobUrl}) (run [#${runId}](${runUrl})).`;
-            const current = await github.rest.issues.getComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: commentId,
-            });
-            const currentBody = current.data.body || "";
-            const nextBody = currentBody.includes(marker)
-              ? currentBody.replace(new RegExp(`${marker}[\\s\\S]*$`), linkLine)
-              : `${currentBody}\n\n${linkLine}`;
-            await github.rest.issues.updateComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: commentId,
-              body: nextBody,
-            });
       - name: Create GitHub deployment record
         id: gh_deployment
         if: ${{ needs.prepare.outputs.pr_number != '' }}
