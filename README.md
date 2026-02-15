@@ -410,3 +410,5 @@ Releases a tagged in the form of `<version>-headscale-<headscale_version>`. Requ
 
 We perform a lightweight integration test by deploying the application to a Fly.io app after successful build on
 the `main` branch, which will fail if the application doesn't come up healthy.
+Readiness is version-aware: CI waits until `GET /health` returns HTTP 200 and the `X-Deploy-Version` response header
+matches the image tag deployed in that run (for example, `sha-<short_sha>`).

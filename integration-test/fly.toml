@@ -9,6 +9,9 @@ swap_size_mb = 128
 [build]
   image = "ghcr.io/niklasrosenstein/headscale-fly-io:$VERSION"
 
+[env]
+  DEPLOY_VERSION = "$VERSION"
+
 [deploy]
   # NOTE: We usually recommend the immediate strategy because other deployment strategies require HA
   #       compatibility, however for integration testing we use rolling to make `fly deploy` fail if the
