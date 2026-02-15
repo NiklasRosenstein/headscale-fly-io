@@ -166,6 +166,9 @@ Headplane is disabled by default. To enable it, set:
   HEADPLANE_ENABLED = "true"
 ```
 
+When Headplane is disabled, nginx returns `404` on `/admin` and `/admin/*` with the message:
+`Headplane extension is not enabled.`
+
 **Enabling OIDC for Headplane:**
 
 To enable single sign-on for Headplane, first register the callback URL in your OIDC provider:
