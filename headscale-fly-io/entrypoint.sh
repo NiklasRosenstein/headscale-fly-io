@@ -236,11 +236,21 @@ EOF
   fi
 }
 
+write_nginx_config() {
+  NGINX_CONFIG_PATH=/etc/headscale/nginx.conf
+  export DEPLOY_VERSION="${DEPLOY_VERSION:-unknown}"
+  export HEADPLANE_ENABLED="${HEADPLANE_ENABLED:-false}"
+  info "writing $NGINX_CONFIG_PATH"
+  # shellcheck disable=SC3060
+  envsubst '${DEPLOY_VERSION} ${HEADPLANE_ENABLED}' < "${NGINX_CONFIG_PATH/.conf/.template.conf}" > "$NGINX_CONFIG_PATH"
+}
+
 main() {
   write_noise_private_key
   write_config
   write_headplane_config
   restore_databases
+  write_nginx_config
   maybe_idle
   
   # Start headplane and nginx before headscale

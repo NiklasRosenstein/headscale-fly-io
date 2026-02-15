@@ -168,6 +168,9 @@ Headplane is disabled by default. To enable it, set:
 
 **Database Backup:** When Headplane is enabled, its database (`hp_persist.db`) is automatically backed up and restored by Litestream alongside the Headscale database. No additional configuration is needed.
 
+When Headplane is disabled, nginx returns `404` on `/admin` and `/admin/*` with the message:
+`Headplane extension is not enabled.`
+
 **Enabling OIDC for Headplane:**
 
 To enable single sign-on for Headplane, first register the callback URL in your OIDC provider:
@@ -412,3 +415,5 @@ Releases a tagged in the form of `<version>-headscale-<headscale_version>`. Requ
 
 We perform a lightweight integration test by deploying the application to a Fly.io app after successful build on
 the `main` branch, which will fail if the application doesn't come up healthy.
+Readiness is version-aware: CI waits until `GET /health` returns HTTP 200 and the `X-Deploy-Version` response header
+matches the image tag deployed in that run (for example, `sha-<short_sha>`).
