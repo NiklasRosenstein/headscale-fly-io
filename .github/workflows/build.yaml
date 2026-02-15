@@ -29,6 +29,7 @@ jobs:
       checkout_short_sha: ${{ steps.resolve.outputs.checkout_short_sha }}
       pr_number: ${{ steps.resolve.outputs.pr_number }}
       trigger_comment_id: ${{ steps.resolve.outputs.trigger_comment_id }}
+      status_comment_id: ${{ steps.create_status_comment.outputs.status_comment_id }}
       build_allowed: ${{ steps.resolve.outputs.build_allowed }}
       deploy_allowed: ${{ steps.resolve.outputs.deploy_allowed }}
     steps:
@@ -143,31 +144,23 @@ jobs:
             core.setOutput("trigger_comment_id", triggerCommentId);
             core.setOutput("build_allowed", buildAllowed ? "true" : "false");
             core.setOutput("deploy_allowed", deployAllowed ? "true" : "false");
-      - name: Link triggering comment to this run
+      - name: Create status comment with run link
+        id: create_status_comment
         if: ${{ github.event_name == 'issue_comment' && steps.resolve.outputs.trigger_comment_id != '' }}
         uses: actions/github-script@v7
         with:
           script: |
-            const commentId = Number("${{ steps.resolve.outputs.trigger_comment_id }}");
             const runId = process.env.GITHUB_RUN_ID;
             const runUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${runId}`;
             const marker = "<!-- integration-test-run-link -->";
-            const linkLine = `${marker}\nIntegration test run started: [workflow run #${runId}](${runUrl}).`;
-            const current = await github.rest.issues.getComment({
+            const body = `${marker}\nIntegration test run started by /integration-test-run: [workflow run #${runId}](${runUrl}).`;
+            const created = await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              comment_id: commentId,
+              issue_number: Number("${{ steps.resolve.outputs.pr_number }}"),
+              body,
             });
-            const currentBody = current.data.body || "";
-            const nextBody = currentBody.includes(marker)
-              ? currentBody.replace(new RegExp(`${marker}[\\s\\S]*$`), linkLine)
-              : `${currentBody}\n\n${linkLine}`;
-            await github.rest.issues.updateComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: commentId,
-              body: nextBody,
-            });
+            core.setOutput("status_comment_id", String(created.data.id));
 
   docker:
     needs: prepare
@@ -248,12 +241,12 @@ jobs:
         uses: actions/checkout@v5
         with:
           ref: ${{ needs.prepare.outputs.checkout_ref }}
-      - name: Update triggering comment with deployment job link
-        if: ${{ github.event_name == 'issue_comment' && needs.prepare.outputs.trigger_comment_id != '' }}
+      - name: Update status comment with deployment job link
+        if: ${{ github.event_name == 'issue_comment' && needs.prepare.outputs.status_comment_id != '' }}
         uses: actions/github-script@v7
         with:
           script: |
-            const commentId = Number("${{ needs.prepare.outputs.trigger_comment_id }}");
+            const commentId = Number("${{ needs.prepare.outputs.status_comment_id }}");
             const runId = process.env.GITHUB_RUN_ID;
             const runUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${runId}`;
             let deploymentJobUrl = runUrl;
@@ -271,7 +264,7 @@ jobs:
             }
 
             const marker = "<!-- integration-test-run-link -->";
-            const linkLine = `${marker}\nIntegration test run started: [deployment job](${deploymentJobUrl}) (run [#${runId}](${runUrl})).`;
+            const linkLine = `${marker}\nIntegration test run started by /integration-test-run: [deployment job](${deploymentJobUrl}) (run [#${runId}](${runUrl})).`;
             const current = await github.rest.issues.getComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
