@@ -2,9 +2,9 @@
   <img src=".github/assets/headscale-on-fly.jpg">
 </p>
 
-# Headscale on Fly.io
+# Headscale on Fly.io (and Kubernetes!)
 
-This repository builds a Docker image that can be run as an app on [Fly.io] to create an easy, robust and affordable
+This repository builds a Docker image that can be run as an app on [Fly.io] or **Kubernetes** to create an easy, robust and affordable
 deployment of [Headscale] (an open source implementation of the [Tailscale] control plane, allowing you to create your
 self-hosted virtual private network using Tailscale clients). It uses [Litestream] to replicate and restore the SQlite
 database from an S3 bucket (such as [Tigris] bucket integrated with your Fly.io app).
@@ -27,7 +27,11 @@ no nodes connected.
 __Contents__
 
 <!-- toc -->
-- [Headscale on Fly.io](#headscale-on-flyio)
+- [Headscale on Fly.io (and Kubernetes!)](#headscale-on-flyio-and-kubernetes)
+  - [Kubernetes Deployment](#kubernetes-deployment)
+    - [Features](#features)
+    - [Quick Start (Kubernetes)](#quick-start-kubernetes)
+  - [Fly.io Deployment](#flyio-deployment)
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
   - [Usage](#usage)
@@ -47,6 +51,43 @@ __Contents__
   - [Development](#development)
   - [Integration testing](#integration-testing)
 <!-- end toc -->
+
+## Kubernetes Deployment
+
+This project also includes a **Helm chart** for deploying Headscale on Kubernetes with feature parity to the Fly.io deployment.
+
+### Features
+
+- **Ingress Support** - Traditional Kubernetes Ingress (nginx, traefik, etc.)
+- **Gateway API Support** - Modern Gateway API (HTTPRoute, GRPCRoute)
+- **TLS/Certificate Management** - Integration with cert-manager
+- **Litestream Replication** - S3-compatible backup/restore
+- **OIDC Authentication** - OpenID Connect support
+- **Prometheus Metrics** - ServiceMonitor for monitoring
+
+### Quick Start (Kubernetes)
+
+```bash
+# Install with Ingress
+helm install headscale ./charts/headscale \
+  --namespace headscale --create-namespace \
+  --set headscale.domainName=vpn.example.com \
+  --set ingress.enabled=true \
+  --set ingress.className=nginx
+
+# Or with Gateway API
+helm install headscale ./charts/headscale \
+  --namespace headscale --create-namespace \
+  --set headscale.domainName=vpn.example.com \
+  --set gatewayApi.enabled=true \
+  --set 'gatewayApi.httpRoute.hostnames[0]=vpn.example.com'
+```
+
+For detailed Kubernetes documentation, see the [Helm chart README](./charts/headscale/README.md).
+
+---
+
+## Fly.io Deployment
 
 ## Prerequisites
 

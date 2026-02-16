@@ -1,0 +1,61 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "headscale.fullname" . }}
+  labels:
+    {{- include "headscale.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "headscale.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow HTTP traffic
+    - ports:
+        - protocol: TCP
+          port: {{ .Values.service.httpPort }}
+      from:
+        - namespaceSelector: {}
+    # Allow gRPC traffic
+    - ports:
+        - protocol: TCP
+          port: {{ .Values.service.grpcPort }}
+      from:
+        - namespaceSelector: {}
+    # Allow metrics scraping
+    - ports:
+        - protocol: TCP
+          port: {{ .Values.service.metricsPort }}
+      from:
+        - namespaceSelector: {}
+    {{- with .Values.networkPolicy.ingress }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  egress:
+    # Allow DNS
+    - ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Allow HTTPS (for DERP servers, OIDC, etc.)
+    - ports:
+        - protocol: TCP
+          port: 443
+    # Allow HTTP
+    - ports:
+        - protocol: TCP
+          port: 80
+    {{- if .Values.litestream.enabled }}
+    # Allow S3 access for Litestream
+    - ports:
+        - protocol: TCP
+          port: 443
+    {{- end }}
+    {{- with .Values.networkPolicy.egress }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+{{- end }}

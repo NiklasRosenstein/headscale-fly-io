@@ -1,0 +1,32 @@
+{{- if .Values.certificate.enabled }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "headscale.fullname" . }}
+  labels:
+    {{- include "headscale.labels" . | nindent 4 }}
+spec:
+  secretName: {{ .Values.certificate.secretName | default (printf "%s-tls" (include "headscale.fullname" .)) }}
+  issuerRef:
+    name: {{ .Values.certificate.issuerRef.name }}
+    kind: {{ .Values.certificate.issuerRef.kind | default "ClusterIssuer" }}
+    {{- if .Values.certificate.issuerRef.group }}
+    group: {{ .Values.certificate.issuerRef.group }}
+    {{- end }}
+  dnsNames:
+    {{- if .Values.certificate.dnsNames }}
+    {{- range .Values.certificate.dnsNames }}
+    - {{ . | quote }}
+    {{- end }}
+    {{- else if and .Values.ingress.enabled (gt (len .Values.ingress.hosts) 0) }}
+    {{- range .Values.ingress.hosts }}
+    - {{ .host | quote }}
+    {{- end }}
+    {{- else if and .Values.gatewayApi.enabled (gt (len .Values.gatewayApi.httpRoute.hostnames) 0) }}
+    {{- range .Values.gatewayApi.httpRoute.hostnames }}
+    - {{ . | quote }}
+    {{- end }}
+    {{- else }}
+    - {{ include "headscale.domainName" . | quote }}
+    {{- end }}
+{{- end }}

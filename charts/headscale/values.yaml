@@ -1,0 +1,408 @@
+# Default values for headscale.
+# This is a YAML-formatted file.
+
+# -- Number of replicas. Note: Headscale with SQLite only supports 1 replica.
+# For HA, consider using LiteFS or an external database.
+replicaCount: 1
+
+image:
+  # -- Headscale image repository
+  repository: ghcr.io/niklasrosenstein/headscale-fly-io
+  # -- Image pull policy
+  pullPolicy: IfNotPresent
+  # -- Overrides the image tag (default: Chart appVersion)
+  tag: ""
+
+# -- Image pull secrets for private registries
+imagePullSecrets: []
+# -- Override the chart name
+nameOverride: ""
+# -- Override the full release name
+fullnameOverride: ""
+
+serviceAccount:
+  # -- Specifies whether a service account should be created
+  create: true
+  # -- Annotations to add to the service account
+  annotations: {}
+  # -- The name of the service account to use
+  name: ""
+
+# -- Pod annotations
+podAnnotations: {}
+
+# -- Pod security context
+podSecurityContext:
+  fsGroup: 102
+
+# -- Container security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 101
+  runAsGroup: 102
+  readOnlyRootFilesystem: false
+
+# -----------------------------------------------------------------------------
+# Headscale Configuration
+# -----------------------------------------------------------------------------
+headscale:
+  # -- Domain name for the Headscale server (e.g., vpn.example.com)
+  # This is REQUIRED for proper operation
+  domainName: ""
+
+  # -- DNS configuration for Tailscale clients
+  dns:
+    # -- Base domain for MagicDNS
+    baseDomain: "tailnet"
+    # -- Enable MagicDNS
+    magicDns: true
+    # -- Global nameservers for DNS queries
+    nameserversGlobal: "1.1.1.1, 1.0.0.1, 2606:4700:4700::1111, 2606:4700:4700::1001"
+    # -- Search domains
+    searchDomains: ""
+
+  # -- Log level (trace, debug, info, warn, error)
+  logLevel: "info"
+
+  # -- IP address prefixes for the VPN
+  prefixes:
+    v4: "100.64.0.0/10"
+    v6: "fd7a:115c:a1e0::/48"
+    allocation: "random"
+
+  # -- Timeout for ephemeral nodes
+  ephemeralNodeInactivityTimeout: "30m"
+
+  # -- OIDC configuration for authentication
+  oidc:
+    # -- Enable OIDC authentication
+    enabled: false
+    # -- OIDC issuer URL
+    issuer: ""
+    # -- OIDC client ID
+    clientId: ""
+    # -- OIDC client secret (use existingSecret for production)
+    clientSecret: ""
+    # -- Reference to an existing secret containing OIDC client secret
+    # The secret should have key 'oidc-client-secret'
+    existingSecret: ""
+    # -- OIDC scopes
+    scopes: "openid, profile, email"
+    # -- Session expiry duration
+    expiry: "180d"
+    # -- Use expiry from token
+    useExpiryFromToken: false
+    # -- Only start if OIDC is available
+    onlyStartIfOidcIsAvailable: true
+    # -- Allowed domains (comma-separated or YAML list)
+    allowedDomains: ""
+    # -- Allowed groups (comma-separated or YAML list)
+    allowedGroups: ""
+    # -- Allowed users (comma-separated or YAML list)
+    allowedUsers: ""
+
+# -----------------------------------------------------------------------------
+# Headplane Configuration (Web UI)
+# -----------------------------------------------------------------------------
+headplane:
+  # -- Enable Headplane web interface
+  enabled: false
+
+  # -- Base URL for Headplane (used for OIDC callbacks)
+  # If not set, will be constructed from headscale.domainName
+  # Example: https://vpn.example.com
+  baseUrl: ""
+
+  # -- Cookie secret for session encryption (must be exactly 32 characters)
+  # Auto-generated if not provided. Use existingSecret for production.
+  cookieSecret: ""
+
+  # -- Cookie secure flag (set to true when using HTTPS)
+  cookieSecure: true
+
+  # -- Enable process inspection for network management features
+  procEnabled: true
+
+  # -- OIDC configuration for Headplane SSO
+  oidc:
+    # -- Enable OIDC authentication for Headplane
+    enabled: false
+    # -- OIDC issuer URL
+    issuer: ""
+    # -- OIDC client ID
+    clientId: ""
+    # -- OIDC client secret (use existingSecret for production)
+    clientSecret: ""
+    # -- Headscale API key for Headplane to communicate with Headscale
+    # This should be a valid Headscale API key
+    headscaleApiKey: ""
+    # -- OIDC scopes
+    scope: "openid email profile"
+    # -- Use PKCE for OIDC flow
+    usePkce: true
+    # -- Disable API key login when OIDC is enabled
+    disableApiKeyLogin: false
+    # -- Token endpoint authentication method
+    tokenEndpointAuthMethod: "client_secret_basic"
+    # -- Reference to an existing secret containing OIDC credentials
+    # The secret should have keys: 'headplane-oidc-client-secret' and 'headplane-oidc-headscale-api-key'
+    existingSecret: ""
+
+  # -- Reference to existing secret containing headplane cookie secret
+  # The secret should have key 'headplane-cookie-secret'
+  existingSecretCookieSecretKey: "headplane-cookie-secret"
+
+
+# -- Reference to existing secret containing secrets
+existingSecret: ""
+# -- Key in existing secret for NOISE_PRIVATE_KEY
+existingSecretNoisePrivateKeyKey: "noise-private-key"
+
+# -----------------------------------------------------------------------------
+# Litestream Configuration (SQLite replication to S3)
+# -----------------------------------------------------------------------------
+litestream:
+  # -- Enable Litestream for SQLite replication
+  enabled: false
+
+  # -- S3-compatible storage configuration
+  s3:
+    # -- S3 bucket name
+    bucket: ""
+    # -- S3 endpoint URL
+    endpoint: ""
+    # -- S3 region
+    region: "auto"
+    # -- Path prefix in the bucket
+    path: "headscale.db"
+
+  # -- AWS credentials (use existingSecret for production)
+  aws:
+    accessKeyId: ""
+    secretAccessKey: ""
+    # -- Reference to existing secret containing AWS credentials
+    existingSecret: ""
+    accessKeyIdKey: "aws-access-key-id"
+    secretAccessKeyKey: "aws-secret-access-key"
+
+  # -- AGE encryption key for Litestream backups (auto-generated if not provided)
+  ageSecretKey: ""
+  # -- Key in existing secret for AGE_SECRET_KEY
+  existingSecretAgeSecretKeyKey: "age-secret-key"
+
+  # -- Litestream tuning parameters
+  retention: "24h"
+  syncInterval: "1s"
+  retentionCheckInterval: "1h"
+  validationInterval: "12h"
+
+  # -- Import an existing SQLite database from S3 (one-time migration)
+  # Set to the path of the database file in the S3 bucket
+  # Remember to unset this after the import is complete
+  importDatabase: ""
+
+# -----------------------------------------------------------------------------
+# Debug/Troubleshooting
+# -----------------------------------------------------------------------------
+debug:
+  # -- If true, the entrypoint will sleep indefinitely on error (useful for debugging)
+  entrypointIdle: false
+
+# -----------------------------------------------------------------------------
+# Service Configuration
+# -----------------------------------------------------------------------------
+service:
+  # -- Service type
+  type: ClusterIP
+  # -- HTTP port for web interface and API
+  httpPort: 8080
+  # -- gRPC port for CLI access
+  grpcPort: 50443
+  # -- Metrics port for Prometheus
+  metricsPort: 8081
+  # -- Annotations for the service
+  annotations: {}
+
+# -- Additional service for gRPC (if needed separately)
+grpcService:
+  # -- Create a separate service for gRPC
+  enabled: false
+  # -- Service type for gRPC
+  type: ClusterIP
+  # -- Port for gRPC service
+  port: 50443
+  # -- Annotations for the gRPC service
+  annotations: {}
+
+# -----------------------------------------------------------------------------
+# Ingress Configuration
+# -----------------------------------------------------------------------------
+ingress:
+  # -- Enable Ingress
+  enabled: false
+
+  # -- Ingress class name (e.g., nginx, traefik)
+  className: ""
+
+  # -- Annotations for the Ingress
+  annotations: {}
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+    # nginx.ingress.kubernetes.io/ssl-redirect: "true"
+
+  # -- Hosts configuration
+  hosts:
+    - host: headscale.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+
+  # -- TLS configuration
+  tls: []
+  #  - secretName: headscale-tls
+  #    hosts:
+  #      - headscale.example.com
+
+  # -- Ingress for gRPC (some ingress controllers need separate config)
+  grpc:
+    # -- Enable separate ingress for gRPC
+    enabled: false
+    # -- Ingress class name for gRPC
+    className: ""
+    # -- Annotations for gRPC Ingress
+    annotations: {}
+      # nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+      # nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # -- TLS configuration for gRPC
+    tls: []
+
+# -----------------------------------------------------------------------------
+# Gateway API Configuration
+# -----------------------------------------------------------------------------
+gatewayApi:
+  # -- Enable Gateway API resources
+  enabled: false
+
+  # -- HTTPRoute for main traffic
+  httpRoute:
+    # -- Parent gateway reference
+    parentRefs:
+      - name: main-gateway
+        namespace: ""  # defaults to release namespace
+        sectionName: https
+
+    # -- Hostnames for the HTTPRoute
+    hostnames:
+      - headscale.example.com
+
+  # -- GRPCRoute for CLI access (requires Gateway API v1alpha2+)
+  grpcRoute:
+    # -- Enable GRPCRoute
+    enabled: false
+    # -- Parent gateway reference for gRPC
+    parentRefs:
+      - name: main-gateway
+        namespace: ""
+        sectionName: grpc
+
+  # -- TLS configuration (if using TLSRoute)
+  tlsRoute:
+    enabled: false
+    parentRefs:
+      - name: main-gateway
+        namespace: ""
+        sectionName: tls
+
+  # -- Reference to TLS secret for Gateway TLS termination
+  # (May be configured at Gateway level instead)
+  tlsSecretRef: ""
+
+# -----------------------------------------------------------------------------
+# Certificate Management (cert-manager)
+# -----------------------------------------------------------------------------
+certificate:
+  # -- Create Certificate resource (requires cert-manager)
+  enabled: false
+  # -- Issuer reference
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  # -- DNS names for the certificate
+  dnsNames: []
+  # -- Secret name for the certificate
+  secretName: headscale-tls
+
+# -----------------------------------------------------------------------------
+# Persistence
+# -----------------------------------------------------------------------------
+persistence:
+  # -- Enable persistence for SQLite database
+  enabled: true
+  # -- Storage class (empty for default)
+  storageClassName: ""
+  # -- Access mode
+  accessMode: ReadWriteOnce
+  # -- Storage size
+  size: 1Gi
+  # -- Annotations for the PVC
+  annotations: {}
+  # -- Use existing PVC
+  existingClaim: ""
+
+# -- Resources for the container
+resources: {}
+  # limits:
+  #   cpu: 500m
+  #   memory: 256Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+# -- Node selector
+nodeSelector: {}
+
+# -- Tolerations
+tolerations: []
+
+# -- Affinity rules
+affinity: {}
+
+# -- Health check probes
+probes:
+  liveness:
+    enabled: true
+    initialDelaySeconds: 10
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readiness:
+    enabled: true
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+# -----------------------------------------------------------------------------
+# Service Monitor (Prometheus Operator)
+# -----------------------------------------------------------------------------
+serviceMonitor:
+  # -- Create ServiceMonitor resource
+  enabled: false
+  # -- Prometheus namespace (if different from release namespace)
+  namespace: ""
+  # -- Additional labels for the ServiceMonitor
+  labels: {}
+  # -- Scrape interval
+  interval: 30s
+  # -- Scrape timeout
+  scrapeTimeout: 10s
+
+# -----------------------------------------------------------------------------
+# Network Policies
+# -----------------------------------------------------------------------------
+networkPolicy:
+  # -- Enable NetworkPolicy
+  enabled: false
+  # -- Additional ingress rules
+  ingress: []
+  # -- Additional egress rules
+  egress: []
