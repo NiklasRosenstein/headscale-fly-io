@@ -18,7 +18,7 @@ COPY --from=ghcr.io/tale/headplane:0.6.2 /app/node_modules /opt/headplane/node_m
 COPY --from=ghcr.io/tale/headplane:0.6.2 /var/lib/headplane /var/lib/headplane
 WORKDIR /etc/headscale
 VOLUME /var/lib/headscale
-COPY entrypoint.sh litestream-entrypoint.sh config.template.yaml config-oidc.template.yaml config-headplane.template.yaml nginx.template.conf ./
+COPY entrypoint.sh litestream-entrypoint.sh config.template.yaml config-oidc.template.yaml config-headplane.template.yaml litestream-headplane.template.yaml nginx.template.conf ./
 RUN addgroup -S headscale && adduser -S headscale -G headscale
 RUN mkdir -p /etc/headscale /var/lib/headscale /var/run/headscale /var/lib/headplane /run/nginx && \
     touch /etc/litestream.yml && \

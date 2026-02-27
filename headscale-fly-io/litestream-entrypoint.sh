@@ -73,6 +73,12 @@ assert_is_set() {
 #
 
 write_config() {
+  # Skip if config already exists (pre-created and merged by entrypoint.sh)
+  if [ -s /etc/litestream.yml ]; then
+    info "litestream custom config already exists, skipping write_config"
+    return
+  fi
+
   assert_is_set AWS_ACCESS_KEY_ID
   assert_is_set AWS_SECRET_ACCESS_KEY
   assert_is_set AWS_REGION
@@ -138,7 +144,7 @@ maybe_import_database() {
 }
 
 main() {
-  LITESTREAM_ENABLED="${LITESTREAM_ACCESS_KEY_ID:-true}"
+  LITESTREAM_ENABLED="${LITESTREAM_ENABLED:-true}"
   write_config
   if ! maybe_import_database && [ "$LITESTREAM_ENABLED" = "true" ]; then
     info_run litestream restore -if-db-not-exists -if-replica-exists -replica s3 "$LITESTREAM_DATABASE_PATH"
