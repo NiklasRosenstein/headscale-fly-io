@@ -12,10 +12,10 @@ RUN apk add age envsubst nginx nodejs npm
 COPY --from=ghcr.io/juanfont/headscale:v0.28.0 ko-app/headscale /usr/bin/headscale
 COPY --from=litestream /litestream /usr/bin/litestream
 COPY --from=minio/mc:RELEASE.2024-10-02T08-27-28Z /usr/bin/mc /usr/bin/mc
-COPY --from=ghcr.io/tale/headplane:0.6.1 /app/build /opt/headplane/build
-COPY --from=ghcr.io/tale/headplane:0.6.1 /app/drizzle /opt/headplane/drizzle
-COPY --from=ghcr.io/tale/headplane:0.6.1 /app/node_modules /opt/headplane/node_modules
-COPY --from=ghcr.io/tale/headplane:0.6.1 /var/lib/headplane /var/lib/headplane
+COPY --from=ghcr.io/tale/headplane:0.6.2 /app/build /opt/headplane/build
+COPY --from=ghcr.io/tale/headplane:0.6.2 /app/drizzle /opt/headplane/drizzle
+COPY --from=ghcr.io/tale/headplane:0.6.2 /app/node_modules /opt/headplane/node_modules
+COPY --from=ghcr.io/tale/headplane:0.6.2 /var/lib/headplane /var/lib/headplane
 WORKDIR /etc/headscale
 VOLUME /var/lib/headscale
 COPY entrypoint.sh litestream-entrypoint.sh config.template.yaml config-oidc.template.yaml config-headplane.template.yaml nginx.template.conf ./
