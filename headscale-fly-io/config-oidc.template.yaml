@@ -4,7 +4,6 @@ oidc:
   allowed_users: [ ${HEADSCALE_OIDC_ALLOWED_USERS_YAML} ]
   client_id: "${HEADSCALE_OIDC_CLIENT_ID}"
   client_secret: "${HEADSCALE_OIDC_CLIENT_SECRET}"
-  expiry: "${HEADSCALE_OIDC_EXPIRY}"
   extra_params: {}
   issuer: "${HEADSCALE_OIDC_ISSUER}"
   only_start_if_oidc_is_available: ${HEADSCALE_OIDC_ONLY_START_IF_OIDC_IS_AVAILABLE}
