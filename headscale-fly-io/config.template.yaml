@@ -5,7 +5,7 @@ grpc_listen_addr: 0.0.0.0:50443
 grpc_allow_insecure: true # We use Fly.io's TLS termination.
 
 node:
-  # Default key expiry for non-tagged nodes, regardless of registration method
+  # Default node expiry for non-tagged nodes, regardless of registration method
   # (replaces the removed oidc.expiry option). Tagged nodes never expire.
   expiry: ${HEADSCALE_NODE_EXPIRY}
   ephemeral:
