@@ -74,6 +74,15 @@ write_config() {
   export HEADSCALE_PREFIXES_V6="${HEADSCALE_PREFIXES_V6:-fd7a:115c:a1e0::/48}"
   export HEADSCALE_PREFIXES_ALLOCATION="${HEADSCALE_PREFIXES_ALLOCATION:-random}"
   export HEADSCALE_EPHEMERAL_NODE_INACTIVITY_TIMEOUT="${HEADSCALE_EPHEMERAL_NODE_INACTIVITY_TIMEOUT:-30m}"
+  # node.expiry replaces the removed oidc.expiry (headscale 0.29). Honor the
+  # legacy HEADSCALE_OIDC_EXPIRY variable as a fallback so that existing
+  # deployments keep their configured value; default matches the previous
+  # OIDC expiry default of 180d.
+  export HEADSCALE_NODE_EXPIRY="${HEADSCALE_NODE_EXPIRY:-${HEADSCALE_OIDC_EXPIRY:-180d}}"
+  # Headscale also reads configuration from HEADSCALE_* environment variables
+  # (viper), so the mere presence of HEADSCALE_OIDC_EXPIRY in the environment
+  # is fatal on 0.29+ — drop it after consuming the value above.
+  unset HEADSCALE_OIDC_EXPIRY
 
   # Generate the Headscale configuration file by substituting environment variables.
   info "writing $HEADSCALE_CONFIG_PATH"
@@ -85,7 +94,6 @@ write_config() {
     assert_is_set HEADSCALE_OIDC_CLIENT_ID
     assert_is_set HEADSCALE_OIDC_CLIENT_SECRET
     export HEADSCALE_OIDC_SCOPES="${HEADSCALE_OIDC_SCOPES:-openid, profile, email}"
-    export HEADSCALE_OIDC_EXPIRY="${HEADSCALE_OIDC_EXPIRY:-180d}"
     export HEADSCALE_OIDC_USE_EXPIRY_FROM_TOKEN="${HEADSCALE_OIDC_USE_EXPIRY_FROM_TOKEN:-false}"
     export HEADSCALE_OIDC_ONLY_START_IF_OIDC_IS_AVAILABLE="${HEADSCALE_OIDC_ONLY_START_IF_OIDC_IS_AVAILABLE:-true}"
     # Export HEADSCALE_OIDC_ALLOWED_USERS_YAML with the value of: HEADSCALE_OIDC_ALLOWED_USERS_FLY if exists, or try HEADSCALE_OIDC_ALLOWED_USERS otherwise.
