@@ -181,7 +181,7 @@ Then set the following environment variables:
 
 ```bash
 $ fly secrets set HEADPLANE_OIDC_CLIENT_SECRET=<your-client-secret>
-$ fly secrets set HEADPLANE_OIDC_HEADSCALE_API_KEY=$(fly ssh console -C "headscale apikeys create --expiration 999d")
+$ fly secrets set HEADPLANE_HEADSCALE_API_KEY=$(fly ssh console -C "headscale apikeys create --expiration 999d")
 ```
 
 Add to your `fly.toml`:
@@ -275,20 +275,23 @@ __Headscale configuration variables__
 
 __Headplane configuration variables__
 
-| Variable                                    | Default                            | Description                                                                              |
-| ------------------------------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------- |
-| `HEADPLANE_ENABLED`                         | `false`                            | Enable or disable the Headplane web UI.                                                  |
-| `HEADPLANE_BASE_URL`                        | `https://${HEADSCALE_DOMAIN_NAME}` | Public URL where Headplane is accessible (required for OIDC callback URLs)               |
-| `HEADPLANE_COOKIE_SECRET`                   | (auto)                             | Cookie encryption secret (automatically generated if not provided)                       |
-| `HEADPLANE_PROC_ENABLED`                    | `true`                             | Enable process inspection for network management features                                |
-| `HEADPLANE_OIDC_ISSUER`                     | n/a                                | OIDC issuer URL for Headplane SSO (e.g., `https://accounts.google.com`)                  |
-| `HEADPLANE_OIDC_CLIENT_ID`                  | n/a                                | OIDC client ID for Headplane. **Important:** Should match Headscale's OIDC client ID     |
-| `HEADPLANE_OIDC_CLIENT_SECRET`              | n/a                                | OIDC client secret for Headplane. **Important:** Use `fly secrets set`                   |
-| `HEADPLANE_OIDC_HEADSCALE_API_KEY`          | n/a                                | Headscale API key for OIDC flow. **Important:** Use `fly secrets set`                    |
-| `HEADPLANE_OIDC_SCOPE`                      | `openid email profile`             | OIDC scopes to request                                                                   |
-| `HEADPLANE_OIDC_USE_PKCE`                   | `true`                             | Use PKCE for additional security (requires OIDC provider support)                        |
-| `HEADPLANE_OIDC_DISABLE_API_KEY_LOGIN`      | `false`                            | Disable traditional API key login when OIDC is enabled                                   |
-| `HEADPLANE_OIDC_TOKEN_ENDPOINT_AUTH_METHOD` | `client_secret_basic`              | Token endpoint authentication method (e.g., `client_secret_post`, `client_secret_basic`) |
+| Variable                                      | Default                            | Description                                                                                               |
+| --------------------------------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `HEADPLANE_ENABLED`                           | `false`                            | Enable or disable the Headplane web UI.                                                                   |
+| `HEADPLANE_BASE_URL`                          | `https://${HEADSCALE_DOMAIN_NAME}` | Public URL where Headplane is accessible (required for OIDC callback URLs).                               |
+| `HEADPLANE_HEADSCALE_PUBLIC_URL`              | `https://${HEADSCALE_DOMAIN_NAME}` | Public Headscale URL displayed in registration commands.                                                  |
+| `HEADPLANE_HEADSCALE_API_KEY`                 | n/a                                | Headscale API key for OIDC and server-side operations. **Important:** Use `fly secrets set`.              |
+| `HEADPLANE_OIDC_HEADSCALE_API_KEY`            | n/a                                | Deprecated alias for `HEADPLANE_HEADSCALE_API_KEY`, retained for existing deployments.                   |
+| `HEADPLANE_COOKIE_SECRET`                     | (auto)                             | Cookie encryption secret (automatically generated if not provided).                                      |
+| `HEADPLANE_PROC_ENABLED`                      | `true`                             | Enable process inspection for network management features.                                               |
+| `HEADPLANE_OIDC_ISSUER`                       | n/a                                | OIDC issuer URL for Headplane SSO (e.g., `https://accounts.google.com`).                                 |
+| `HEADPLANE_OIDC_CLIENT_ID`                    | n/a                                | OIDC client ID for Headplane. **Important:** Should match Headscale's OIDC client ID.                    |
+| `HEADPLANE_OIDC_CLIENT_SECRET`                | n/a                                | OIDC client secret for Headplane. **Important:** Use `fly secrets set`.                                  |
+| `HEADPLANE_OIDC_SCOPE`                        | `openid email profile`             | OIDC scopes to request.                                                                                    |
+| `HEADPLANE_OIDC_USE_PKCE`                     | `true`                             | Use PKCE for additional security (requires OIDC provider support).                                       |
+| `HEADPLANE_OIDC_DISABLE_API_KEY_LOGIN`        | `false`                            | Disable traditional API key login when OIDC is enabled.                                                  |
+| `HEADPLANE_OIDC_TOKEN_ENDPOINT_AUTH_METHOD`   | `client_secret_basic`              | Token endpoint authentication method (e.g., `client_secret_post`, `client_secret_basic`).                |
+| `HEADPLANE_OIDC_DEFAULT_ROLE`                 | `member`                           | Role assigned to new OIDC users after the first owner is created.                                        |
 
 __Litestream configuration variables__
 
