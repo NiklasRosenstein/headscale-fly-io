@@ -27,6 +27,14 @@ assert_is_set() {
   fi
 }
 
+assert_is_not_empty() {
+  eval "val=\${$1:-}"
+  if [ -z "$val" ]; then
+    error "missing non-empty environment variable \"$1\""
+    exit 1
+  fi
+}
+
 maybe_idle() {
   if [ "${ENTRYPOINT_IDLE:-false}" = "true" ]; then
     info "ENTRYPOINT_IDLE=true, entering idle state"
@@ -125,28 +133,40 @@ write_headplane_config() {
   if [ -z "${HEADPLANE_BASE_URL:-}" ]; then
     export HEADPLANE_BASE_URL="https://${HEADSCALE_DOMAIN_NAME}"
   fi
+  export HEADPLANE_HEADSCALE_PUBLIC_URL="${HEADPLANE_HEADSCALE_PUBLIC_URL:-https://${HEADSCALE_DOMAIN_NAME}}"
+
+  # HEADPLANE_OIDC_HEADSCALE_API_KEY is retained for existing deployments.
+  if [ -z "${HEADPLANE_HEADSCALE_API_KEY:-}" ] && [ -n "${HEADPLANE_OIDC_HEADSCALE_API_KEY:-}" ]; then
+    export HEADPLANE_HEADSCALE_API_KEY="${HEADPLANE_OIDC_HEADSCALE_API_KEY}"
+  fi
+  if [ -n "${HEADPLANE_HEADSCALE_API_KEY:-}" ]; then
+    export HEADPLANE_HEADSCALE_API_KEY_CONFIG="  api_key: \"${HEADPLANE_HEADSCALE_API_KEY}\""
+  else
+    export HEADPLANE_HEADSCALE_API_KEY_CONFIG="# api_key: not configured"
+  fi
 
   # Generate OIDC configuration if enabled
   if [ -n "${HEADPLANE_OIDC_ISSUER:-}" ]; then
     info "enabling OIDC configuration for Headplane"
     assert_is_set HEADPLANE_OIDC_CLIENT_ID
     assert_is_set HEADPLANE_OIDC_CLIENT_SECRET
-    assert_is_set HEADPLANE_OIDC_HEADSCALE_API_KEY
+    assert_is_not_empty HEADPLANE_HEADSCALE_API_KEY
     
     export HEADPLANE_OIDC_SCOPE="${HEADPLANE_OIDC_SCOPE:-openid email profile}"
     export HEADPLANE_OIDC_USE_PKCE="${HEADPLANE_OIDC_USE_PKCE:-true}"
     export HEADPLANE_OIDC_DISABLE_API_KEY_LOGIN="${HEADPLANE_OIDC_DISABLE_API_KEY_LOGIN:-false}"
     export HEADPLANE_OIDC_TOKEN_ENDPOINT_AUTH_METHOD="${HEADPLANE_OIDC_TOKEN_ENDPOINT_AUTH_METHOD:-client_secret_basic}"
+    export HEADPLANE_OIDC_DEFAULT_ROLE="${HEADPLANE_OIDC_DEFAULT_ROLE:-member}"
     
     export HEADPLANE_OIDC_CONFIG="oidc:
   issuer: ${HEADPLANE_OIDC_ISSUER}
   client_id: ${HEADPLANE_OIDC_CLIENT_ID}
   client_secret: ${HEADPLANE_OIDC_CLIENT_SECRET}
-  headscale_api_key: ${HEADPLANE_OIDC_HEADSCALE_API_KEY}
   scope: ${HEADPLANE_OIDC_SCOPE}
   use_pkce: ${HEADPLANE_OIDC_USE_PKCE}
   disable_api_key_login: ${HEADPLANE_OIDC_DISABLE_API_KEY_LOGIN}
-  token_endpoint_auth_method: ${HEADPLANE_OIDC_TOKEN_ENDPOINT_AUTH_METHOD}"
+  token_endpoint_auth_method: ${HEADPLANE_OIDC_TOKEN_ENDPOINT_AUTH_METHOD}
+  default_role: ${HEADPLANE_OIDC_DEFAULT_ROLE}"
   else
     export HEADPLANE_OIDC_CONFIG="# oidc: not configured"
   fi
@@ -166,7 +186,7 @@ start_headplane() {
 
   info "starting headplane in background (logs to stdout/stderr)"
   cd /opt/headplane
-  HEADPLANE_CONFIG_PATH=/etc/headscale/config-headplane.yaml NODE_PATH=/opt/headplane/node_modules node /opt/headplane/build/server/index.js 2>&1 &
+  HEADPLANE_CONFIG_PATH=/etc/headscale/config-headplane.yaml node /opt/headplane/build/server/index.js 2>&1 &
   HEADPLANE_PID=$!
   info "headplane started with PID $HEADPLANE_PID"
 }

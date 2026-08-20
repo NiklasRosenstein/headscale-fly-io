@@ -3,6 +3,8 @@
 
 headscale:
   url: http://localhost:8888
+  public_url: ${HEADPLANE_HEADSCALE_PUBLIC_URL}
+${HEADPLANE_HEADSCALE_API_KEY_CONFIG}
   config_path: /etc/headscale/config.yaml
   config_strict: true
 
