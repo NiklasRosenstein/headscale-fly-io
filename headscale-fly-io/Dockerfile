@@ -9,7 +9,7 @@ RUN arch=$(cat /tmp/arch) &&\
 
 FROM node:24-alpine
 RUN apk add age envsubst nginx minio-client && ln -s /usr/bin/mcli /usr/bin/mc
-COPY --from=ghcr.io/juanfont/headscale:v0.29.5 ko-app/headscale /usr/bin/headscale
+COPY --from=ghcr.io/juanfont/headscale:v0.29.6 ko-app/headscale /usr/bin/headscale
 COPY --from=litestream /litestream /usr/bin/litestream
 COPY --from=ghcr.io/tale/headplane:0.8.2 /app/build /opt/headplane/build
 COPY --from=ghcr.io/tale/headplane:0.8.2 /app/drizzle /opt/headplane/drizzle
