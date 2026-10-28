@@ -7,7 +7,7 @@ RUN arch=$(cat /tmp/arch) &&\
     wget https://github.com/benbjohnson/litestream/releases/download/v0.3.13/litestream-v0.3.13-linux-${arch}.tar.gz && \
     tar -xf litestream-v0.3.13-linux-${arch}.tar.gz
 
-FROM node:24-alpine
+FROM node:26-alpine
 RUN apk add age envsubst nginx minio-client && ln -s /usr/bin/mcli /usr/bin/mc
 COPY --from=ghcr.io/juanfont/headscale:v0.29.6 ko-app/headscale /usr/bin/headscale
 COPY --from=litestream /litestream /usr/bin/litestream
