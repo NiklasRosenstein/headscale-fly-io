@@ -157,6 +157,20 @@ write_headplane_config() {
     export HEADPLANE_OIDC_DISABLE_API_KEY_LOGIN="${HEADPLANE_OIDC_DISABLE_API_KEY_LOGIN:-false}"
     export HEADPLANE_OIDC_TOKEN_ENDPOINT_AUTH_METHOD="${HEADPLANE_OIDC_TOKEN_ENDPOINT_AUTH_METHOD:-client_secret_basic}"
     export HEADPLANE_OIDC_DEFAULT_ROLE="${HEADPLANE_OIDC_DEFAULT_ROLE:-member}"
+
+    # Optional: name of the ID token claim that carries the Headplane role.
+    # Synced on every OIDC login for all users except the owner.
+    if [ -n "${HEADPLANE_OIDC_ROLE_CLAIM:-}" ]; then
+      case "${HEADPLANE_OIDC_ROLE_CLAIM}" in
+        *'
+'*) error "HEADPLANE_OIDC_ROLE_CLAIM must not contain newlines"; exit 1 ;;
+      esac
+      HEADPLANE_OIDC_ROLE_CLAIM_ESCAPED=$(printf '%s' "${HEADPLANE_OIDC_ROLE_CLAIM}" | sed 's/\\/\\\\/g; s/"/\\"/g')
+      HEADPLANE_OIDC_ROLE_CLAIM_CONFIG="
+  role_claim: \"${HEADPLANE_OIDC_ROLE_CLAIM_ESCAPED}\""
+    else
+      HEADPLANE_OIDC_ROLE_CLAIM_CONFIG=""
+    fi
     
     export HEADPLANE_OIDC_CONFIG="oidc:
   issuer: ${HEADPLANE_OIDC_ISSUER}
@@ -166,7 +180,7 @@ write_headplane_config() {
   use_pkce: ${HEADPLANE_OIDC_USE_PKCE}
   disable_api_key_login: ${HEADPLANE_OIDC_DISABLE_API_KEY_LOGIN}
   token_endpoint_auth_method: ${HEADPLANE_OIDC_TOKEN_ENDPOINT_AUTH_METHOD}
-  default_role: ${HEADPLANE_OIDC_DEFAULT_ROLE}"
+  default_role: ${HEADPLANE_OIDC_DEFAULT_ROLE}${HEADPLANE_OIDC_ROLE_CLAIM_CONFIG}"
   else
     export HEADPLANE_OIDC_CONFIG="# oidc: not configured"
   fi
