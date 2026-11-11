@@ -161,8 +161,13 @@ write_headplane_config() {
     # Optional: name of the ID token claim that carries the Headplane role.
     # Synced on every OIDC login for all users except the owner.
     if [ -n "${HEADPLANE_OIDC_ROLE_CLAIM:-}" ]; then
+      case "${HEADPLANE_OIDC_ROLE_CLAIM}" in
+        *'
+'*) error "HEADPLANE_OIDC_ROLE_CLAIM must not contain newlines"; exit 1 ;;
+      esac
+      HEADPLANE_OIDC_ROLE_CLAIM_ESCAPED=$(printf '%s' "${HEADPLANE_OIDC_ROLE_CLAIM}" | sed 's/\\/\\\\/g; s/"/\\"/g')
       HEADPLANE_OIDC_ROLE_CLAIM_CONFIG="
-  role_claim: \"${HEADPLANE_OIDC_ROLE_CLAIM}\""
+  role_claim: \"${HEADPLANE_OIDC_ROLE_CLAIM_ESCAPED}\""
     else
       HEADPLANE_OIDC_ROLE_CLAIM_CONFIG=""
     fi
