@@ -167,6 +167,10 @@ write_headplane_config() {
   disable_api_key_login: ${HEADPLANE_OIDC_DISABLE_API_KEY_LOGIN}
   token_endpoint_auth_method: ${HEADPLANE_OIDC_TOKEN_ENDPOINT_AUTH_METHOD}
   default_role: ${HEADPLANE_OIDC_DEFAULT_ROLE}"
+    if [ -n "${HEADPLANE_OIDC_ROLE_CLAIM:-}" ]; then
+      HEADPLANE_OIDC_CONFIG="${HEADPLANE_OIDC_CONFIG}
+  role_claim: ${HEADPLANE_OIDC_ROLE_CLAIM}"
+    fi
   else
     export HEADPLANE_OIDC_CONFIG="# oidc: not configured"
   fi
