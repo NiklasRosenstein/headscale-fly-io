@@ -292,6 +292,7 @@ __Headplane configuration variables__
 | `HEADPLANE_OIDC_DISABLE_API_KEY_LOGIN`        | `false`                            | Disable traditional API key login when OIDC is enabled.                                                  |
 | `HEADPLANE_OIDC_TOKEN_ENDPOINT_AUTH_METHOD`   | `client_secret_basic`              | Token endpoint authentication method (e.g., `client_secret_post`, `client_secret_basic`).                |
 | `HEADPLANE_OIDC_DEFAULT_ROLE`                 | `member`                           | Role assigned to new OIDC users after the first owner is created.                                        |
+| `HEADPLANE_OIDC_ROLE_CLAIM`                   | n/a                                | ID token claim with the Headplane role (e.g., `roles` for Entra ID app roles). Synced on every login, except for the owner. Values: `admin`, `network_admin`, `it_admin`, `auditor`, `viewer`, `member`. |
 
 __Litestream configuration variables__
 
